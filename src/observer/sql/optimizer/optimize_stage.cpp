@@ -48,7 +48,7 @@ RC OptimizeStage::handle_request(SQLStageEvent *sql_event)
     return rc;
   }
 
-  rc = optimize(logical_operator);
+  rc = optimize(logical_operator);//do nothing
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to optimize plan. rc=%s", strrc(rc));
     return rc;

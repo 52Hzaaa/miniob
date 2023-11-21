@@ -267,6 +267,15 @@ public:
   RC delete_record(const RID *rid);
 
   /**
+   * @brief 从指定文件中更新指定槽位的记录
+   * 
+   * @param rid 待更新记录的标识符
+   * @param field 待更新记录的标识符
+   * @param rid 待更新记录的标识符
+   */
+  RC update_record(Record &record,Field *field,Value& value);
+
+  /**
    * @brief 插入一个新的记录到指定文件中，并返回该记录的标识符
    * 
    * @param data        纪录内容
