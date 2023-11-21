@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <functional>
 #include "storage/table/table_meta.h"
+//#include "storage/field/field.h"
 
 struct RID;
 class Record;
@@ -28,6 +29,7 @@ class Index;
 class IndexScanner;
 class RecordDeleter;
 class Trx;
+class Field;
 
 /**
  * @brief 表
@@ -80,6 +82,7 @@ public:
    */
   RC insert_record(Record &record);
   RC delete_record(const Record &record);
+  RC update_record(Record &record,Field* field,Value &value);
   RC visit_record(const RID &rid, bool readonly, std::function<void(Record &)> visitor);
   RC get_record(const RID &rid, Record &record);
 

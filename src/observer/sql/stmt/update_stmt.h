@@ -1,53 +1,41 @@
-/* Copyright (c) 2021 OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-See the Mulan PSL v2 for more details. */
-
 //
-// Created by Wangyunlai on 2022/5/22.
+// Created by dom 2023/11/17
 //
 
 #pragma once
 
+
 #include "common/rc.h"
 #include "sql/stmt/stmt.h"
-
+#include "storage/field/field.h"
+#include "sql/parser/parse_defs.h"
+class FieldMeta;
+class FilterStmt;
+class Db;
 class Table;
-
 /**
- * @brief 更新语句
+ * @brief Update 语句
  * @ingroup Statement
  */
-class UpdateStmt : public Stmt 
+class UpdateStmt : public Stmt
 {
 public:
-  UpdateStmt() = default;
-  UpdateStmt(Table *table, Value *values, int value_amount);
+  UpdateStmt(Table *table, Value &value, Field *field, FilterStmt *filter_stmt);
+  ~UpdateStmt() override;
+
+  Table      *table() const { return table_; }
+  FilterStmt *filter_stmt() const { return filter_stmt_; }
+  Value       value() const { return value_; }
+  Field      *field() const { return field_; }
+
+  StmtType type() const override { return StmtType::UPDATE; }
 
 public:
   static RC create(Db *db, const UpdateSqlNode &update_sql, Stmt *&stmt);
 
-public:
-  Table *table() const
-  {
-    return table_;
-  }
-  Value *values() const
-  {
-    return values_;
-  }
-  int value_amount() const
-  {
-    return value_amount_;
-  }
-
 private:
-  Table *table_ = nullptr;
-  Value *values_ = nullptr;
-  int value_amount_ = 0;
+  Table      *table_       = nullptr;  // 更新的表
+  Value       value_;  // 更新的值（单个字段）
+  Field      *field_       = nullptr;  // 更新的属性（单个属性）
+  FilterStmt *filter_stmt_ = nullptr;  // 过滤条件
 };

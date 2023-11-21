@@ -16,7 +16,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/bitmap.h"
 #include "storage/common/condition_filter.h"
 #include "storage/trx/trx.h"
-
+//xinzeng
+#include "storage/field/field.h"
 using namespace common;
 
 static constexpr int PAGE_HEADER_SIZE = (sizeof(PageHeader));
@@ -448,7 +449,14 @@ RC RecordFileHandler::delete_record(const RID *rid)
   }
   return rc;
 }
+//todo
+RC RecordFileHandler::update_record(Record &record,Field *field,Value& value){
 
+  const FieldMeta* fm=field->meta();
+  memcpy(record.data() + fm->offset(), value.data(), fm->len());
+  return RC::SUCCESS;
+  
+}
 RC RecordFileHandler::get_record(RecordPageHandler &page_handler, const RID *rid, bool readonly, Record *rec)
 {
   if (nullptr == rid || nullptr == rec) {

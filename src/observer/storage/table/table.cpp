@@ -485,6 +485,22 @@ RC Table::delete_record(const Record &record)
   return rc;
 }
 
+//todo
+RC Table::update_record(Record &record,Field *field,Value &value)
+{
+  RC rc = RC::SUCCESS;
+  // for (Index *index : indexes_) {
+  //   rc = index->delete_entry(record.data(), &record.rid());
+  //   ASSERT(RC::SUCCESS == rc, 
+  //          "failed to delete entry from index. table name=%s, index name=%s, rid=%s, rc=%s",
+  //          name(), index->index_meta().name(), record.rid().to_string().c_str(), strrc(rc));
+  // }
+
+  //  RC update_record(Record &record,Field *field,Value& value);
+  rc = record_handler_->update_record(record,field,value);
+  return rc;
+}
+
 RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 {
   RC rc = RC::SUCCESS;
