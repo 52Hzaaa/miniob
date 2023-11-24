@@ -305,6 +305,6 @@ std::string date_value_to_str(int v)
     day=std::to_string(v%100);
   }
   
-  return year+"—"+month+"-"+day;
+  return year+"-"+month+"-"+day;
 }
 }  // namespace common
