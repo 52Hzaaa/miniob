@@ -19,7 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/comparator.h"
 #include "common/lang/string.h"
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "booleans"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "dates","floats", "booleans"};
 
 const char *attr_type_to_string(AttrType type)
 {
@@ -58,12 +58,20 @@ Value::Value(const char *s, int len /*= 0*/)
   set_string(s, len);
 }
 
+Value::Value(const char *s, bool isDate)
+{
+  set_date_from_str(s);
+}
+
 void Value::set_data(char *data, int length)
 {
   switch (attr_type_) {
     case CHARS: {
       set_string(data, length);
     } break;
+    case DATES:{
+      set_date_from_json(data);
+    }break;
     case INTS: {
       num_value_.int_value_ = *(int *)data;
       length_ = length;
@@ -112,6 +120,25 @@ void Value::set_string(const char *s, int len /*= 0*/)
   length_ = str_value_.length();
 }
 
+void Value::set_date_from_str(const char *s)//insert 时调用
+{
+  attr_type_ = DATES;
+  int year=0;
+  int month=0;
+  int day=0;
+  sscanf(s,"%d-%d-%d",&year,&month,&day);
+  num_value_.date_value_=year*10000+month*100+day;
+  length_ = sizeof(num_value_.date_value_);
+}
+
+
+void Value::set_date_from_json(const char *s)//反序列化时候调用 例如select的时候
+{
+  attr_type_ = DATES;
+  num_value_.date_value_=*(int *)s;
+  length_ = sizeof(num_value_.date_value_);
+}
+
 void Value::set_value(const Value &value)
 {
   switch (value.attr_type_) {
@@ -121,6 +148,9 @@ void Value::set_value(const Value &value)
     case FLOATS: {
       set_float(value.get_float());
     } break;
+    case DATES:{
+      set_date_from_str(value.get_date().c_str());
+    }break;
     case CHARS: {
       set_string(value.get_string().c_str());
     } break;
@@ -158,6 +188,9 @@ std::string Value::to_string() const
     case BOOLEANS: {
       os << num_value_.bool_value_;
     } break;
+    case DATES:{
+      os<< common::date_value_to_str(num_value_.date_value_);
+    }break;
     case CHARS: {
       os << str_value_;
     } break;
@@ -178,6 +211,9 @@ int Value::compare(const Value &other) const
       case FLOATS: {
         return common::compare_float((void *)&this->num_value_.float_value_, (void *)&other.num_value_.float_value_);
       } break;
+      case DATES:{
+        return common::compare_int((void *)&this->num_value_.date_value_, (void *)&other.num_value_.date_value_);
+      }break;
       case CHARS: {
         return common::compare_string((void *)this->str_value_.c_str(),
             this->str_value_.length(),
@@ -257,7 +293,10 @@ float Value::get_float() const
   }
   return 0;
 }
-
+std::string Value::get_date() const
+{
+  return this->to_string();
+}
 std::string Value::get_string() const
 {
   return this->to_string();

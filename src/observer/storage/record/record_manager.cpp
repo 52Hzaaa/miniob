@@ -449,7 +449,7 @@ RC RecordFileHandler::delete_record(const RID *rid)
   }
   return rc;
 }
-//todo
+
 RC RecordFileHandler::update_record(Record &record,Field *field,Value& value){
 
   const FieldMeta* fm=field->meta();

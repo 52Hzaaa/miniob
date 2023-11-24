@@ -485,7 +485,6 @@ RC Table::delete_record(const Record &record)
   return rc;
 }
 
-//todo
 RC Table::update_record(Record &record,Field *field,Value &value)
 {
   RC rc = RC::SUCCESS;

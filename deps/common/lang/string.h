@@ -118,6 +118,13 @@ void val_to_str(const T &val, std::string &str, std::ios_base &(*radix)(std::ios
  */
 std::string double_to_str(double v);
 
+/**
+ * date_value to string
+ * @param v
+ * @return
+ */
+std::string date_value_to_str(int v);
+
 bool is_blank(const char *s);
 
 /**
