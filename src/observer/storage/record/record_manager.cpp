@@ -82,10 +82,11 @@ RecordPageHandler::~RecordPageHandler() { cleanup(); }
 
 RC RecordPageHandler::init(DiskBufferPool &buffer_pool, PageNum page_num, bool readonly)
 {
-  if (disk_buffer_pool_ != nullptr) {
-    LOG_WARN("Disk buffer pool has been opened for page_num %d.", page_num);
-    return RC::RECORD_OPENNED;
-  }
+  //todo为了解决date的一个bug注释的 不知道是不是坑
+  // if (disk_buffer_pool_ != nullptr) {
+  //   LOG_WARN("Disk buffer pool has been opened for page_num %d.", page_num);
+  //   return RC::RECORD_OPENNED;
+  // }
 
   RC ret = RC::SUCCESS;
   if ((ret = buffer_pool.get_this_page(page_num, &frame_)) != RC::SUCCESS) {
