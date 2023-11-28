@@ -18,7 +18,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "common/lang/comparator.h"
 #include "common/lang/string.h"
-
+#include <vector>
+#include <limits>
 const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "dates","floats", "booleans"};
 
 const char *attr_type_to_string(AttrType type)
@@ -122,23 +123,46 @@ void Value::set_string(const char *s, int len /*= 0*/)
 
 void Value::set_date_from_str(const char *s)//insert 时调用
 {
-  attr_type_ = DATES;
   int year=0;
   int month=0;
   int day=0;
   sscanf(s,"%d-%d-%d",&year,&month,&day);
-  num_value_.date_value_=year*10000+month*100+day;
-  length_ = sizeof(num_value_.date_value_);
+  if(check_date_validity(year,month,day)){
+    attr_type_ = DATES;
+    num_value_.date_value_=year*10000+month*100+day;
+    length_ = sizeof(num_value_.date_value_);
+  }
+  else{
+    attr_type_ = CHARS;
+    str_value_.assign(s);
+    length_ = str_value_.length();
+  }
 }
 
 
-void Value::set_date_from_json(const char *s)//反序列化时候调用 例如select的时候
+void Value::set_date_from_json(const char *s)//反序列化时候调用 例如select的时候会遍历表中的所有记录
 {
   attr_type_ = DATES;
   num_value_.date_value_=*(int *)s;
   length_ = sizeof(num_value_.date_value_);
 }
-
+bool Value::check_date_validity(int year,int month,int day)
+{
+  std::vector<int> daysPerMonth={31,28,31,30,31,30,31,31,30,31,30,31};
+  std::vector<int> daysPerMonthOnLeapYear={31,29,31,30,31,30,31,31,30,31,30,31};
+  if(year%4){
+    if(daysPerMonth[month-1]<day){
+      return false;
+    }
+    return true;
+  }
+  else{
+    if(daysPerMonthOnLeapYear[month-1]<day){
+      return false;
+    }
+    return true;
+  }
+}
 void Value::set_value(const Value &value)
 {
   switch (value.attr_type_) {
@@ -235,7 +259,8 @@ int Value::compare(const Value &other) const
     return common::compare_float((void *)&this->num_value_.float_value_, (void *)&other_data);
   }
   LOG_WARN("not supported");
-  return -1;  // TODO return rc?
+  //特例 返回int的最小值 用于表示类型不匹配
+  return std::numeric_limits<int> ::min();  // TODO return rc?
 }
 
 int Value::get_int() const

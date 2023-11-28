@@ -70,6 +70,7 @@ public:
   void set_boolean(bool val);
   void set_string(const char *s, int len = 0);
   void set_date_from_str(const char *s);
+  bool check_date_validity(int year,int month,int day);
   void set_date_from_json(const char *s);
   void set_value(const Value &value);
 

@@ -14,7 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/expr/expression.h"
 #include "sql/expr/tuple.h"
-
+#include <limits>
 using namespace std;
 
 RC FieldExpr::get_value(const Tuple &tuple, Value &value) const
@@ -90,6 +90,12 @@ RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &re
 {
   RC rc = RC::SUCCESS;
   int cmp_result = left.compare(right);
+  //domtodo 算是之前的伏笔，有空看看
+  if(cmp_result==std::numeric_limits<int>::min()){
+    LOG_WARN("unsupported comparison. %d", comp_);
+    rc = RC::INTERNAL;
+    return rc;
+  }
   result = false;
   switch (comp_) {
     case EQUAL_TO: {

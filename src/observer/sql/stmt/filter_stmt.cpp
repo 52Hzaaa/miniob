@@ -98,9 +98,16 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
       LOG_WARN("cannot find attr");
       return rc;
     }
+    //在这里判断左右值的数据类型是否匹配
+    if(!condition.right_is_attr){
+      if(condition.right_value.attr_type()!=field->type()){
+        return RC::INVALID_ARGUMENT;
+      }
+    }
     FilterObj filter_obj;
     filter_obj.init_attr(Field(table, field));
     filter_unit->set_left(filter_obj);
+
   } else {
     FilterObj filter_obj;
     filter_obj.init_value(condition.left_value);
