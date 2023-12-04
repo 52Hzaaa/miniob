@@ -57,8 +57,12 @@ public:
   {
     return filter_stmt_;
   }
-
+  AggregationType aggregation_type() const
+  {
+    return aggregation_type_;
+  }
 private:
+  AggregationType      aggregation_type_ = AggregationType::NO_AT;
   std::vector<Field> query_fields_;
   std::vector<Table *> tables_;
   FilterStmt *filter_stmt_ = nullptr;

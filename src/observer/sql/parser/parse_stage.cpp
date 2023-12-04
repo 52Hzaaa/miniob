@@ -56,7 +56,9 @@ RC ParseStage::handle_request(SQLStageEvent *sql_event)
     sql_result->set_state_string("Failed to parse sql");
     return rc;
   }
-
+  if(sql_node->flag == SCF_SELECT){
+    sql_result->setAggregationType(sql_node->selection.aggregation_type);
+  }
   sql_event->set_sql_node(std::move(sql_node));
 
   return RC::SUCCESS;

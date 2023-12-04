@@ -149,6 +149,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;
+  select_stmt->aggregation_type_=select_sql.aggregation_type;
   stmt = select_stmt;
   return RC::SUCCESS;
 }

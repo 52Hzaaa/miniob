@@ -20,6 +20,126 @@ See the Mulan PSL v2 for more details. */
 #include "common/io/io.h"
 #include "common/log/log.h"
 
+class AvgResult{
+public:
+  void processDate(Value &value){
+    if(valueSum_.attr_type()==UNDEFINED){
+      valueSum_.set_type(value.attr_type());
+    }
+    if(valueSum_.attr_type()==INTS){
+      valueSum_.set_int(valueSum_.get_int()+value.get_int());
+    }
+    if(valueSum_.attr_type()==FLOATS){
+      valueSum_.set_float(valueSum_.get_float()+value.get_float());
+    }
+    tupleNum_++;
+  }
+  std::string getResult(){
+    if(valueSum_.attr_type()==INTS){
+      valueSum_.set_int(valueSum_.get_int()/tupleNum_);
+      return valueSum_.to_string();
+    }
+    if(valueSum_.attr_type()==FLOATS){
+      valueSum_.set_float(valueSum_.get_float()/tupleNum_);
+      return valueSum_.to_string();
+    }
+    return "error";
+  }
+private:
+  Value valueSum_;
+  int tupleNum_=0;
+  //std::string result_;
+};
+
+class MaxResult{
+public:
+  void processDate(Value &value){
+    if(valueSum_.attr_type()==UNDEFINED){
+      valueSum_.set_type(value.attr_type());
+      if(valueSum_.attr_type()==INTS){
+        valueSum_.set_int(value.get_int());
+      }
+      else{
+        valueSum_.set_float(value.get_float());
+      }
+      return;
+    }
+    if(valueSum_.attr_type()==INTS){
+      int t1=valueSum_.get_int();
+      int t2=value.get_int();
+      valueSum_.set_int(t1>t2?t1:t2);
+    }
+    if(valueSum_.attr_type()==FLOATS){
+      float t1=valueSum_.get_float();
+      float t2=value.get_float();
+      valueSum_.set_float(t1>t2?t1:t2);
+    }
+  }
+  std::string getResult(){
+    if(valueSum_.attr_type()==INTS){
+      return valueSum_.to_string();
+    }
+    if(valueSum_.attr_type()==FLOATS){
+      return valueSum_.to_string();
+    }
+    return "error";
+  }
+private:
+  Value valueSum_;
+};
+
+
+class MinResult{
+public:
+  void processDate(Value &value){
+    if(valueSum_.attr_type()==UNDEFINED){
+      valueSum_.set_type(value.attr_type());
+      if(valueSum_.attr_type()==INTS){
+        valueSum_.set_int(value.get_int());
+      }
+      else{
+        valueSum_.set_float(value.get_float());
+      }
+      return;
+    }
+    if(valueSum_.attr_type()==INTS){
+      int t1=valueSum_.get_int();
+      int t2=value.get_int();
+      valueSum_.set_int(t1<t2?t1:t2);
+    }
+    if(valueSum_.attr_type()==FLOATS){
+      float t1=valueSum_.get_float();
+      float t2=value.get_float();
+      valueSum_.set_float(t1<t2?t1:t2);
+    }
+  }
+  std::string getResult(){
+    if(valueSum_.attr_type()==INTS){
+      return valueSum_.to_string();
+    }
+    if(valueSum_.attr_type()==FLOATS){
+      return valueSum_.to_string();
+    }
+    return "error";
+  }
+private:
+  Value valueSum_;
+};
+
+
+//
+class CountResult{
+public:
+  void processDate(Value &value){
+    tupleNum_++;
+  }
+  std::string getResult(){
+    return std::to_string(tupleNum_);
+  }
+private:
+  int tupleNum_=0;
+};
+
 PlainCommunicator::PlainCommunicator()
 {
   send_message_delimiter_.assign(1, '\0');
@@ -221,14 +341,31 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
 
   rc = RC::SUCCESS;
   Tuple *tuple = nullptr;
-  while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
-    assert(tuple != nullptr);
+  std:: string s="";
+  if(sql_result->getAggregationType()==AggregationType::NO_AT){
+    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+      assert(tuple != nullptr);
+      int cell_num = tuple->cell_num();
+      for (int i = 0; i < cell_num; i++) {
+        if (i != 0) {
+          const char *delim = " | ";
+          rc = writer_->writen(delim, strlen(delim));
+          if (OB_FAIL(rc)) {
+            LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+            sql_result->close();
+            return rc;
+          }
+        }
 
-    int cell_num = tuple->cell_num();
-    for (int i = 0; i < cell_num; i++) {
-      if (i != 0) {
-        const char *delim = " | ";
-        rc = writer_->writen(delim, strlen(delim));
+        Value value;
+        rc = tuple->cell_at(i, value);
+        if (rc != RC::SUCCESS) {
+          sql_result->close();
+          return rc;
+        }
+
+        std::string cell_str = value.to_string();
+        rc = writer_->writen(cell_str.data(), cell_str.size());
         if (OB_FAIL(rc)) {
           LOG_WARN("failed to send data to client. err=%s", strerror(errno));
           sql_result->close();
@@ -236,30 +373,93 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
         }
       }
 
-      Value value;
-      rc = tuple->cell_at(i, value);
-      if (rc != RC::SUCCESS) {
-        sql_result->close();
-        return rc;
-      }
-
-      std::string cell_str = value.to_string();
-      rc = writer_->writen(cell_str.data(), cell_str.size());
+      char newline = '\n';
+      rc = writer_->writen(&newline, 1);
       if (OB_FAIL(rc)) {
         LOG_WARN("failed to send data to client. err=%s", strerror(errno));
         sql_result->close();
         return rc;
       }
     }
-
-    char newline = '\n';
-    rc = writer_->writen(&newline, 1);
+  }
+  else if(sql_result->getAggregationType()==AggregationType::AVG_OP){
+    AvgResult* result=new AvgResult();
+     while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+        Value value;
+        rc = tuple->cell_at(0, value);
+        result->processDate(value);
+        if (rc != RC::SUCCESS) {
+          sql_result->close();
+          return rc;
+        }
+     }
+    std::string s=result->getResult();
+    rc = writer_->writen(s.data(), s.size());
+    delete result;
     if (OB_FAIL(rc)) {
       LOG_WARN("failed to send data to client. err=%s", strerror(errno));
       sql_result->close();
       return rc;
     }
   }
+  else if(sql_result->getAggregationType()==AggregationType::MAX_OP){
+     MaxResult* result=new MaxResult();
+     while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+        Value value;
+        rc = tuple->cell_at(0, value);
+        result->processDate(value);
+        if (rc != RC::SUCCESS) {
+          sql_result->close();
+          return rc;
+        }
+     }
+    rc = writer_->writen(result->getResult().data(), result->getResult().size());
+    delete result;
+    if (OB_FAIL(rc)) {
+      LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+      sql_result->close();
+      return rc;
+    }
+  }
+  else if(sql_result->getAggregationType()==AggregationType::MIN_OP){
+    MinResult* result=new MinResult();
+    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+        Value value;
+        rc = tuple->cell_at(0, value);
+        result->processDate(value);
+        if (rc != RC::SUCCESS) {
+          sql_result->close();
+          return rc;
+        }
+    }
+    rc = writer_->writen(result->getResult().data(), result->getResult().size());
+    delete result;
+    if (OB_FAIL(rc)) {
+      LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+      sql_result->close();
+      return rc;
+    }
+  }
+  else if(sql_result->getAggregationType()==AggregationType::COUNT_OP){
+    CountResult* result=new CountResult();
+    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+        Value value;
+        rc = tuple->cell_at(0, value);
+        result->processDate(value);
+        if (rc != RC::SUCCESS) {
+          sql_result->close();
+          return rc;
+        }
+    }
+    rc = writer_->writen(result->getResult().data(), result->getResult().size());
+    delete result;
+    if (OB_FAIL(rc)) {
+      LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+      sql_result->close();
+      return rc;
+    }
+  }
+ 
 
   if (rc == RC::RECORD_EOF) {
     rc = RC::SUCCESS;

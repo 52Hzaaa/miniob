@@ -98,6 +98,11 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         LE
         GE
         NE
+        COUNT
+        AVG
+        MIN
+        MAX        
+
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
@@ -105,6 +110,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   ConditionSqlNode *                condition;
   Value *                           value;
   enum CompOp                       comp;
+  enum AggregationType              aggregation_type;
   RelAttrSqlNode *                  rel_attr;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
@@ -132,6 +138,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <value>               value
 %type <number>              number
 %type <comp>                comp_op
+%type <aggregation_type>    aggregation_type
 %type <rel_attr>            rel_attr
 %type <attr_infos>          attr_def_list
 %type <attr_info>           attr_def
@@ -428,7 +435,7 @@ select_stmt:        /*  select 语句的语法解析树*/
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       if ($2 != nullptr) {
-        $$->selection.attributes.swap(*$2);
+        $$->selection.attributes.swap(*$2); //将S2赋值给select属性列表
         delete $2;
       }
       if ($5 != nullptr) {
@@ -443,6 +450,27 @@ select_stmt:        /*  select 语句的语法解析树*/
         delete $6;
       }
       free($4);
+    }
+    | SELECT aggregation_type LBRACE select_attr RBRACE FROM ID rel_list where 
+    {
+      $$ = new ParsedSqlNode(SCF_SELECT);
+      $$->selection.aggregation_type = $2;
+      if ($4 != nullptr) {
+        $$->selection.attributes.swap(*$4); //将S2赋值给select属性列表
+        delete $4;
+      }
+      if ($8 != nullptr) {
+        $$->selection.relations.swap(*$8);
+        delete $8;
+      }
+      $$->selection.relations.push_back($7);
+      std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
+
+      if ($9 != nullptr) {
+        $$->selection.conditions.swap(*$9);
+        delete $9;
+      }
+      free($7);
     }
     ;
 calc_stmt:
@@ -565,6 +593,20 @@ rel_list:
       free($2);
     }
     ;
+aggregation_type:
+    COUNT {
+      $$ = AggregationType::COUNT_OP;
+    }
+    | AVG {
+      $$ = AggregationType::AVG_OP;
+    }
+    | MAX {
+      $$ = AggregationType::MAX_OP;
+    }
+    | MIN {
+      $$ = AggregationType::MIN_OP;
+    }
+    ;   
 where:
     /* empty */
     {
