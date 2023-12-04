@@ -401,6 +401,8 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
       sql_result->close();
       return rc;
     }
+    char newline = '\n';
+    rc = writer_->writen(&newline, 1);
   }
   else if(sql_result->getAggregationType()==AggregationType::MAX_OP){
      MaxResult* result=new MaxResult();
@@ -420,6 +422,8 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
       sql_result->close();
       return rc;
     }
+    char newline = '\n';
+    rc = writer_->writen(&newline, 1);
   }
   else if(sql_result->getAggregationType()==AggregationType::MIN_OP){
     MinResult* result=new MinResult();
@@ -439,6 +443,8 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
       sql_result->close();
       return rc;
     }
+    char newline = '\n';
+    rc = writer_->writen(&newline, 1);
   }
   else if(sql_result->getAggregationType()==AggregationType::COUNT_OP){
     CountResult* result=new CountResult();
@@ -458,6 +464,8 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
       sql_result->close();
       return rc;
     }
+    char newline = '\n';
+    rc = writer_->writen(&newline, 1);
   }
  
 
