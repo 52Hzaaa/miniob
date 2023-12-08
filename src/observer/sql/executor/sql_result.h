@@ -69,14 +69,22 @@ public:
   RC close();
   RC next_tuple(Tuple *&tuple);
 
-  void setAggregationType(AggregationType type){
-    aggregation_type_=type;
+  void setAggregationType(std::vector<AggregationType> type){
+    aggregation_type_.swap(type);
   }
-  AggregationType getAggregationType(){
+  std::vector<AggregationType>& getAggregationType(){
     return aggregation_type_;
   }
+  
+  void setAggregationFlag(bool flag){
+    has_aggregation=flag;
+  }
+  bool getAggregationFlag(){
+    return has_aggregation;
+  }
 private:
-  AggregationType aggregation_type_=AggregationType::NO_AT;
+  bool has_aggregation = false;
+  std::vector<AggregationType> aggregation_type_;
   Session *session_ = nullptr; ///< 当前所属会话
   std::unique_ptr<PhysicalOperator> operator_;  ///< 执行计划
   TupleSchema tuple_schema_;   ///< 返回的表头信息。可能有也可能没有

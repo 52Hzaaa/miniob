@@ -342,7 +342,8 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
   rc = RC::SUCCESS;
   Tuple *tuple = nullptr;
   std:: string s="";
-  if(sql_result->getAggregationType()==AggregationType::NO_AT){
+  //if(sql_result->getAggregationType()==AggregationType::NO_AT){
+
     while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
       assert(tuple != nullptr);
       int cell_num = tuple->cell_num();
@@ -381,92 +382,94 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
         return rc;
       }
     }
-  }
-  else if(sql_result->getAggregationType()==AggregationType::AVG_OP){
-    AvgResult* result=new AvgResult();
-     while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
-        Value value;
-        rc = tuple->cell_at(0, value);
-        result->processDate(value);
-        if (rc != RC::SUCCESS) {
-          sql_result->close();
-          return rc;
-        }
-     }
-    std::string s=result->getResult();
-    rc = writer_->writen(s.data(), s.size());
-    delete result;
-    if (OB_FAIL(rc)) {
-      LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-      sql_result->close();
-      return rc;
-    }
-    char newline = '\n';
-    rc = writer_->writen(&newline, 1);
-  }
-  else if(sql_result->getAggregationType()==AggregationType::MAX_OP){
-     MaxResult* result=new MaxResult();
-     while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
-        Value value;
-        rc = tuple->cell_at(0, value);
-        result->processDate(value);
-        if (rc != RC::SUCCESS) {
-          sql_result->close();
-          return rc;
-        }
-     }
-    rc = writer_->writen(result->getResult().data(), result->getResult().size());
-    delete result;
-    if (OB_FAIL(rc)) {
-      LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-      sql_result->close();
-      return rc;
-    }
-    char newline = '\n';
-    rc = writer_->writen(&newline, 1);
-  }
-  else if(sql_result->getAggregationType()==AggregationType::MIN_OP){
-    MinResult* result=new MinResult();
-    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
-        Value value;
-        rc = tuple->cell_at(0, value);
-        result->processDate(value);
-        if (rc != RC::SUCCESS) {
-          sql_result->close();
-          return rc;
-        }
-    }
-    rc = writer_->writen(result->getResult().data(), result->getResult().size());
-    delete result;
-    if (OB_FAIL(rc)) {
-      LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-      sql_result->close();
-      return rc;
-    }
-    char newline = '\n';
-    rc = writer_->writen(&newline, 1);
-  }
-  else if(sql_result->getAggregationType()==AggregationType::COUNT_OP){
-    CountResult* result=new CountResult();
-    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
-        Value value;
-        rc = tuple->cell_at(0, value);
-        result->processDate(value);
-        if (rc != RC::SUCCESS) {
-          sql_result->close();
-          return rc;
-        }
-    }
-    rc = writer_->writen(result->getResult().data(), result->getResult().size());
-    delete result;
-    if (OB_FAIL(rc)) {
-      LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-      sql_result->close();
-      return rc;
-    }
-    char newline = '\n';
-    rc = writer_->writen(&newline, 1);
-  }
+
+    
+  //}
+  // else if(sql_result->getAggregationType()==AggregationType::AVG_OP){
+  //   AvgResult* result=new AvgResult();
+  //    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+  //       Value value;
+  //       rc = tuple->cell_at(0, value);
+  //       result->processDate(value);
+  //       if (rc != RC::SUCCESS) {
+  //         sql_result->close();
+  //         return rc;
+  //       }
+  //    }
+  //   std::string s=result->getResult();
+  //   rc = writer_->writen(s.data(), s.size());
+  //   delete result;
+  //   if (OB_FAIL(rc)) {
+  //     LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+  //     sql_result->close();
+  //     return rc;
+  //   }
+  //   char newline = '\n';
+  //   rc = writer_->writen(&newline, 1);
+  // }
+  // else if(sql_result->getAggregationType()==AggregationType::MAX_OP){
+  //    MaxResult* result=new MaxResult();
+  //    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+  //       Value value;
+  //       rc = tuple->cell_at(0, value);
+  //       result->processDate(value);
+  //       if (rc != RC::SUCCESS) {
+  //         sql_result->close();
+  //         return rc;
+  //       }
+  //    }
+  //   rc = writer_->writen(result->getResult().data(), result->getResult().size());
+  //   delete result;
+  //   if (OB_FAIL(rc)) {
+  //     LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+  //     sql_result->close();
+  //     return rc;
+  //   }
+  //   char newline = '\n';
+  //   rc = writer_->writen(&newline, 1);
+  // }
+  // else if(sql_result->getAggregationType()==AggregationType::MIN_OP){
+  //   MinResult* result=new MinResult();
+  //   while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+  //       Value value;
+  //       rc = tuple->cell_at(0, value);
+  //       result->processDate(value);
+  //       if (rc != RC::SUCCESS) {
+  //         sql_result->close();
+  //         return rc;
+  //       }
+  //   }
+  //   rc = writer_->writen(result->getResult().data(), result->getResult().size());
+  //   delete result;
+  //   if (OB_FAIL(rc)) {
+  //     LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+  //     sql_result->close();
+  //     return rc;
+  //   }
+  //   char newline = '\n';
+  //   rc = writer_->writen(&newline, 1);
+  // }
+  // else if(sql_result->getAggregationType()==AggregationType::COUNT_OP){
+  //   CountResult* result=new CountResult();
+  //   while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+  //       Value value;
+  //       rc = tuple->cell_at(0, value);
+  //       result->processDate(value);
+  //       if (rc != RC::SUCCESS) {
+  //         sql_result->close();
+  //         return rc;
+  //       }
+  //   }
+  //   rc = writer_->writen(result->getResult().data(), result->getResult().size());
+  //   delete result;
+  //   if (OB_FAIL(rc)) {
+  //     LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+  //     sql_result->close();
+  //     return rc;
+  //   }
+  //   char newline = '\n';
+  //   rc = writer_->writen(&newline, 1);
+  // }
  
 
   if (rc == RC::RECORD_EOF) {

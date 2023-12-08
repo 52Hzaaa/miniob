@@ -57,7 +57,15 @@ RC ParseStage::handle_request(SQLStageEvent *sql_event)
     return rc;
   }
   if(sql_node->flag == SCF_SELECT){
-    sql_result->setAggregationType(sql_node->selection.aggregation_type);
+    if(sql_node->selection.attributes[0].aggregation_type!=AggregationType::NO_AT){
+      sql_node->selection.has_aggregation=true;
+      sql_result->setAggregationFlag(true);
+      std::vector<AggregationType> agg;
+      for(int i=sql_node->selection.attributes.size()-1;i>=0;i--){
+        agg.push_back(sql_node->selection.attributes[i].aggregation_type);
+      }
+      sql_result->setAggregationType(agg);
+    }    
   }
   sql_event->set_sql_node(std::move(sql_node));
 

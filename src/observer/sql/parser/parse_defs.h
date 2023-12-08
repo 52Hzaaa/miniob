@@ -24,8 +24,19 @@ See the Mulan PSL v2 for more details. */
 class Expression;
 
 /**
- * @defgroup SQLParser SQL Parser 
+ * @defgroup SQLParser SQL Parser
  */
+
+
+
+enum class AggregationType
+{
+  COUNT_OP,
+  MAX_OP,
+  MIN_OP,
+  AVG_OP,
+  NO_AT
+};
 
 /**
  * @brief 描述一个属性
@@ -36,15 +47,16 @@ class Expression;
  */
 struct RelAttrSqlNode
 {
-  std::string relation_name;   ///< relation name (may be NULL) 表名
-  std::string attribute_name;  ///< attribute name              属性名
+  std::string     relation_name;   ///< relation name (may be NULL) 表名
+  std::string     attribute_name;  ///< attribute name              属性名
+  AggregationType aggregation_type = AggregationType::NO_AT;
 };
 
 /**
  * @brief 描述比较运算符
  * @ingroup SQLParser
  */
-enum CompOp 
+enum CompOp
 {
   EQUAL_TO,     ///< "="
   LESS_EQUAL,   ///< "<="
@@ -66,24 +78,16 @@ enum CompOp
 struct ConditionSqlNode
 {
   int             left_is_attr;    ///< TRUE if left-hand side is an attribute
-                                   ///< 1时，操作符左边是属性名，0时，是属性值
+                                 ///< 1时，操作符左边是属性名，0时，是属性值
   Value           left_value;      ///< left-hand side value if left_is_attr = FALSE
   RelAttrSqlNode  left_attr;       ///< left-hand side attribute
   CompOp          comp;            ///< comparison operator
   int             right_is_attr;   ///< TRUE if right-hand side is an attribute
-                                   ///< 1时，操作符右边是属性名，0时，是属性值
+                                 ///< 1时，操作符右边是属性名，0时，是属性值
   RelAttrSqlNode  right_attr;      ///< right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value           right_value;     ///< right-hand side value if right_is_attr = FALSE
 };
 
-enum class AggregationType
-{
-  COUNT_OP,
-  MAX_OP,
-  MIN_OP,
-  AVG_OP,
-  NO_AT
-};
 /**
  * @brief 描述一个select语句
  * @ingroup SQLParser
@@ -97,10 +101,11 @@ enum class AggregationType
 
 struct SelectSqlNode
 {
-  AggregationType                 aggregation_type=AggregationType::NO_AT;
-  std::vector<RelAttrSqlNode>     attributes;    ///< attributes in select clause
-  std::vector<std::string>        relations;     ///< 查询的表
-  std::vector<ConditionSqlNode>   conditions;    ///< 查询条件，使用AND串联起来多个条件
+  bool has_aggregation = false;
+  // 常规语句
+  std::vector<RelAttrSqlNode>   attributes;  ///< attributes in select clause
+  std::vector<std::string>      relations;   ///< 查询的表
+  std::vector<ConditionSqlNode> conditions;  ///< 查询条件，使用AND串联起来多个条件
 };
 
 /**

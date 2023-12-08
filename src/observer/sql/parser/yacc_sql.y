@@ -139,6 +139,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <number>              number
 %type <comp>                comp_op
 %type <aggregation_type>    aggregation_type
+%type <rel_attr>    aggregation_attr
+%type <rel_attr_list>    aggregation_list
 %type <rel_attr>            rel_attr
 %type <attr_infos>          attr_def_list
 %type <attr_info>           attr_def
@@ -430,6 +432,15 @@ update_stmt:      /*  update 语句的语法解析树*/
       free($4);
     }
     ;
+/*
+      struct SelectSqlNode
+      {
+        AggregationType                 aggregation_type=AggregationType::NO_AT;
+        std::vector<RelAttrSqlNode>     attributes;    ///< attributes in select clause
+        std::vector<std::string>        relations;     ///< 查询的表
+        std::vector<ConditionSqlNode>   conditions;    ///< 查询条件，使用AND串联起来多个条件
+      };
+*/
 select_stmt:        /*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where
     {
@@ -451,28 +462,8 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
       free($4);
     }
-    | SELECT aggregation_type LBRACE select_attr RBRACE FROM ID rel_list where 
-    {
-      $$ = new ParsedSqlNode(SCF_SELECT);
-      $$->selection.aggregation_type = $2;
-      if ($4 != nullptr) {
-        $$->selection.attributes.swap(*$4); //将S2赋值给select属性列表
-        delete $4;
-      }
-      if ($8 != nullptr) {
-        $$->selection.relations.swap(*$8);
-        delete $8;
-      }
-      $$->selection.relations.push_back($7);
-      std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
-
-      if ($9 != nullptr) {
-        $$->selection.conditions.swap(*$9);
-        delete $9;
-      }
-      free($7);
-    }
     ;
+
 calc_stmt:
     CALC expression_list
     {
@@ -542,6 +533,46 @@ select_attr:
       }
       $$->emplace_back(*$1);
       delete $1;
+    }
+    | aggregation_attr aggregation_list{
+      if ($2!= nullptr) {
+        $$ = $2;
+      } else {
+        $$ = new std::vector<RelAttrSqlNode>;
+      }
+      $$->emplace_back(*$1);
+      delete $1;
+    }
+    ;
+
+aggregation_attr:
+  aggregation_type LBRACE rel_attr RBRACE {
+    $$ = $3;
+    $$->aggregation_type = $1;
+  }
+  |
+  aggregation_type LBRACE '*' RBRACE {
+    $$ = $$ = new RelAttrSqlNode;
+    $$->attribute_name = "*";
+    $$->relation_name  = "";
+    $$->aggregation_type = $1;
+  }
+  ;
+
+aggregation_list:
+/* empty */
+    {
+      $$ = nullptr;
+    }
+    | COMMA aggregation_attr aggregation_list {
+      if ($3 != nullptr) {
+        $$ = $3;
+      } else {
+        $$ = new std::vector<RelAttrSqlNode>;
+      }
+
+      $$->emplace_back(*$2);
+      delete $2;
     }
     ;
 
