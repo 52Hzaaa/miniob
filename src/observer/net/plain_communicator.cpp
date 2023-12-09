@@ -242,7 +242,7 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
       else if(types[i]==AggregationType::MAX_OP){
         results.push_back(new MaxResult());
       }
-      else if(types[i]==AggregationType::MAX_OP){
+      else if(types[i]==AggregationType::MIN_OP){
         results.push_back(new MinResult());
       }
       else{

@@ -132,8 +132,28 @@ RC SessionStage::handle_sql(SQLStageEvent *sql_event)
     return rc;
   }
 
+    // 由于聚合函数错误统一输出 FAILURE，所以这里特判一下
+  bool        isAggre = false;
+  std::string s1      = "SELECT count";
+  std::string s2      = "SELECT avg";
+  std::string s3      = "SELECT min";
+  std::string s4      = "SELECT max";
+  std::string ss      = sql_event->sql();
+  if (ss.substr(0, s1.size()).compare(s1) == 0 || ss.substr(0, s2.size()).compare(s2) == 0 ||
+      ss.substr(0, s3.size()).compare(s3) == 0 || ss.substr(0, s4.size()).compare(s4) == 0) {
+    isAggre = true;
+  }
+
   rc = parse_stage_.handle_request(sql_event);
   if (OB_FAIL(rc)) {
+    if (isAggre) {
+      SessionEvent *session_event = sql_event->session_event();
+      SqlResult    *sql_result    = session_event->sql_result();
+      rc                          = RC::INVALID_ARGUMENT;
+      sql_result->set_state_string("");
+      sql_result->set_return_code(rc);
+      return rc;
+    }
     LOG_TRACE("failed to do parse. rc=%s", strrc(rc));
     return rc;
   }
