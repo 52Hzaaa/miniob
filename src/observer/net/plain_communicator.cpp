@@ -19,126 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "session/session.h"
 #include "common/io/io.h"
 #include "common/log/log.h"
-
-class AvgResult{
-public:
-  void processDate(Value &value){
-    if(valueSum_.attr_type()==UNDEFINED){
-      valueSum_.set_type(value.attr_type());
-    }
-    if(valueSum_.attr_type()==INTS){
-      valueSum_.set_int(valueSum_.get_int()+value.get_int());
-    }
-    if(valueSum_.attr_type()==FLOATS){
-      valueSum_.set_float(valueSum_.get_float()+value.get_float());
-    }
-    tupleNum_++;
-  }
-  std::string getResult(){
-    if(valueSum_.attr_type()==INTS){
-      valueSum_.set_int(valueSum_.get_int()/tupleNum_);
-      return valueSum_.to_string();
-    }
-    if(valueSum_.attr_type()==FLOATS){
-      valueSum_.set_float(valueSum_.get_float()/tupleNum_);
-      return valueSum_.to_string();
-    }
-    return "error";
-  }
-private:
-  Value valueSum_;
-  int tupleNum_=0;
-  //std::string result_;
-};
-
-class MaxResult{
-public:
-  void processDate(Value &value){
-    if(valueSum_.attr_type()==UNDEFINED){
-      valueSum_.set_type(value.attr_type());
-      if(valueSum_.attr_type()==INTS){
-        valueSum_.set_int(value.get_int());
-      }
-      else{
-        valueSum_.set_float(value.get_float());
-      }
-      return;
-    }
-    if(valueSum_.attr_type()==INTS){
-      int t1=valueSum_.get_int();
-      int t2=value.get_int();
-      valueSum_.set_int(t1>t2?t1:t2);
-    }
-    if(valueSum_.attr_type()==FLOATS){
-      float t1=valueSum_.get_float();
-      float t2=value.get_float();
-      valueSum_.set_float(t1>t2?t1:t2);
-    }
-  }
-  std::string getResult(){
-    if(valueSum_.attr_type()==INTS){
-      return valueSum_.to_string();
-    }
-    if(valueSum_.attr_type()==FLOATS){
-      return valueSum_.to_string();
-    }
-    return "error";
-  }
-private:
-  Value valueSum_;
-};
-
-
-class MinResult{
-public:
-  void processDate(Value &value){
-    if(valueSum_.attr_type()==UNDEFINED){
-      valueSum_.set_type(value.attr_type());
-      if(valueSum_.attr_type()==INTS){
-        valueSum_.set_int(value.get_int());
-      }
-      else{
-        valueSum_.set_float(value.get_float());
-      }
-      return;
-    }
-    if(valueSum_.attr_type()==INTS){
-      int t1=valueSum_.get_int();
-      int t2=value.get_int();
-      valueSum_.set_int(t1<t2?t1:t2);
-    }
-    if(valueSum_.attr_type()==FLOATS){
-      float t1=valueSum_.get_float();
-      float t2=value.get_float();
-      valueSum_.set_float(t1<t2?t1:t2);
-    }
-  }
-  std::string getResult(){
-    if(valueSum_.attr_type()==INTS){
-      return valueSum_.to_string();
-    }
-    if(valueSum_.attr_type()==FLOATS){
-      return valueSum_.to_string();
-    }
-    return "error";
-  }
-private:
-  Value valueSum_;
-};
-
-
-//
-class CountResult{
-public:
-  void processDate(Value &value){
-    tupleNum_++;
-  }
-  std::string getResult(){
-    return std::to_string(tupleNum_);
-  }
-private:
-  int tupleNum_=0;
-};
+#include "net/concrete_aggregation.h"
 
 PlainCommunicator::PlainCommunicator()
 {
@@ -341,10 +222,64 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
 
   rc = RC::SUCCESS;
   Tuple *tuple = nullptr;
-  std:: string s="";
-  //if(sql_result->getAggregationType()==AggregationType::NO_AT){
-
+  /*
+  enum class AggregationType
+{
+  COUNT_OP,
+  MAX_OP,
+  MIN_OP,
+  AVG_OP,
+  NO_AT
+};*/
+  if(sql_result->getAggregationFlag()){
+    //构建result 数组
+    std::vector<AggregationResult*> results;
+    std::vector<AggregationType> types=sql_result->getAggregationType();
+    for(int i=0;i<types.size();++i){
+      if(types[i]==AggregationType::AVG_OP){
+        results.push_back(new AvgResult());
+      }
+      else if(types[i]==AggregationType::MAX_OP){
+        results.push_back(new MaxResult());
+      }
+      else if(types[i]==AggregationType::MAX_OP){
+        results.push_back(new MinResult());
+      }
+      else{
+        results.push_back(new CountResult());
+      }
+    }
+    //processData
     while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+      assert(tuple != nullptr);
+      int cell_num = tuple->cell_num();
+      for (int i = 0; i < cell_num; i++) {
+        Value value;
+        rc = tuple->cell_at(i, value);
+        if (rc != RC::SUCCESS) {
+          sql_result->close();
+          return rc;
+        }
+        results[i]->processDate(value);
+      }
+    }
+    for(int i=0;i<results.size();++i){
+      if (i != 0) {
+        const char *delim = " | ";
+        rc = writer_->writen(delim, strlen(delim));
+        if (OB_FAIL(rc)) {
+          LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+          sql_result->close();
+          return rc;
+        }
+      }
+      std::string s=results[i]->getResult();
+      rc = writer_->writen(s.data(), s.size());
+    }
+  }
+  else
+  {
+     while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
       assert(tuple != nullptr);
       int cell_num = tuple->cell_num();
       for (int i = 0; i < cell_num; i++) {
@@ -382,9 +317,9 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
         return rc;
       }
     }
+  }
 
-    
-  //}
+
   // else if(sql_result->getAggregationType()==AggregationType::AVG_OP){
   //   AvgResult* result=new AvgResult();
   //    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
@@ -476,7 +411,7 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
     rc = RC::SUCCESS;
   }
 
-  if (cell_num == 0) {
+  if (cell_num == 0&&!sql_result->getAggregationFlag()) {
     // 除了select之外，其它的消息通常不会通过operator来返回结果，表头和行数据都是空的
     // 这里针对这种情况做特殊处理，当表头和行数据都是空的时候，就返回处理的结果
     // 可能是insert/delete等操作，不直接返回给客户端数据，这里把处理结果返回给客户端
