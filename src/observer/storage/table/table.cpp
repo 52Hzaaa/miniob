@@ -313,11 +313,11 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
     return RC::SCHEMA_FIELD_MISSING;
   }
 
-  const int normal_field_start_index = table_meta_.sys_field_num();
+  const int normal_field_start_index = table_meta_.sys_field_num();//0
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    if (field->type() != value.attr_type()) {
+    if (field->type() != value.attr_type()&& !(value.isNull()&&field->nullable()) ) {
       LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
                 table_meta_.name(), field->name(), field->type(), value.attr_type());
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -325,7 +325,7 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
   }
 
   // 复制所有字段的值
-  int record_size = table_meta_.record_size();
+  int record_size = table_meta_.record_size();//12
   char *record_data = (char *)malloc(record_size);
 
   for (int i = 0; i < value_num; i++) {

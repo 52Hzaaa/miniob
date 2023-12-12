@@ -51,6 +51,7 @@ public:
   explicit Value(float val);
   explicit Value(bool val);
   explicit Value(const char *s, int len = 0);
+  explicit Value(const char *s, int len, bool isNull);
   explicit Value(const char *s, bool isDate);
 
   Value(const Value &other) = default;
@@ -99,11 +100,14 @@ public:
   std::string get_string() const;
   std::string get_date() const;
   bool get_boolean() const;
+  bool isNull() const{
+    return isNull_;
+  }
 
 private:
   AttrType attr_type_ = UNDEFINED;
   int length_ = 0;
-
+  bool isNull_=false;
   union {
     int date_value_;
     int int_value_;

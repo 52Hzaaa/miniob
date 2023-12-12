@@ -59,6 +59,11 @@ Value::Value(const char *s, int len /*= 0*/)
   set_string(s, len);
 }
 
+Value::Value(const char *s, int len, bool isNull){
+  isNull_=true;
+  set_string(s,len);
+}
+
 Value::Value(const char *s, bool isDate)
 {
   set_date_from_str(s);

@@ -111,6 +111,9 @@ INT                                     RETURN_TOKEN(INT_T);
 CHAR                                    RETURN_TOKEN(STRING_T);
 FLOAT                                   RETURN_TOKEN(FLOAT_T);
 [Dd][Aa][Tt][Ee]                        RETURN_TOKEN(DATE_T);  // 增加DATE的token，需要在yacc文件中增加DATE_T的token
+[Nn][Oo][Tt]                            RETURN_TOKEN(NOT_T);  // 增加NULL的token，需要在yacc文件中增加NULL_T的token
+[Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]        RETURN_TOKEN(NULLABLE_T);  //
+[Nn][Uu][Ll][Ll]                        RETURN_TOKEN(NULL_T);   // 
 LOAD                                    RETURN_TOKEN(LOAD);
 DATA                                    RETURN_TOKEN(DATA);
 INFILE                                  RETURN_TOKEN(INFILE);
@@ -137,6 +140,7 @@ EXPLAIN                                 RETURN_TOKEN(EXPLAIN);
 "-" |
 "*" |
 "/"                                     { return yytext[0]; }
+
 {QUOTE}[0-9]{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01]){QUOTE} yylval->string=strdup(yytext);RETURN_TOKEN(DATE_STR);
 \"[^"]*\"                               yylval->string = strdup(yytext);RETURN_TOKEN(SSS);
 '[^']*\'                                yylval->string = strdup(yytext); RETURN_TOKEN(SSS);

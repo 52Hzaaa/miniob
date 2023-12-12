@@ -77,6 +77,9 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         DATE_T
         INT_T
         STRING_T
+        NOT_T
+        NULL_T
+        NULLABLE_T
         FLOAT_T
         HELP
         EXIT
@@ -325,7 +328,6 @@ attr_def_list:
       delete $2;
     }
     ;
-    
 attr_def:
     ID type LBRACE number RBRACE 
     {
@@ -333,9 +335,28 @@ attr_def:
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = $4;
+      $$->nullable=false;
       free($1);
     }
-    | ID type
+    | ID type NOT_T NULL_T
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = 4;
+      $$->nullable=false;
+      free($1);
+    }
+    | ID type NULLABLE_T
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = 4;
+      $$->nullable=true;
+      free($1);
+    }
+    | ID type 
     {
       $$ = new AttrInfoSqlNode;
       $$->type = (AttrType)$2;
@@ -402,6 +423,10 @@ value:
       char *tmp = common::substr($1,1,strlen($1)-2);
       $$ = new Value(tmp);
       free(tmp);
+    }
+    |NULL_T{
+      std::string tmp="null";
+      $$ = new Value(tmp.c_str(),0,true);
     }
     ;
     
