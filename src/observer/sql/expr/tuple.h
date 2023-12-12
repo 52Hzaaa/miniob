@@ -163,7 +163,7 @@ public:
   {
     return speces_.size();
   }
-
+  //domtodo
   RC cell_at(int index, Value &cell) const override
   {
     if (index < 0 || index >= static_cast<int>(speces_.size())) {
@@ -173,8 +173,14 @@ public:
 
     FieldExpr *field_expr = speces_[index];
     const FieldMeta *field_meta = field_expr->field().meta();
-    cell.set_type(field_meta->type());
-    cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    std::string tmp(this->record_->data() + field_meta->offset(), field_meta->len());
+    if(tmp=="null"){
+      cell.set_type(CHARS);
+    }
+    else{
+      cell.set_type(field_meta->type());
+    }
+    cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());    
     return RC::SUCCESS;
   }
 
