@@ -14,6 +14,7 @@ public:
 private:
   Value valueSum_;
   int   tupleNum_ = 0;
+  bool hasNull=false;
 };
 
 class MaxResult : public AggregationResult
@@ -27,6 +28,7 @@ public:
 
 private:
   Value valueSum_;
+  bool hasNull=false;
 };
 
 class MinResult : public AggregationResult
@@ -40,6 +42,7 @@ public:
 
 private:
   Value valueSum_;
+  bool hasNull=false;
 };
 
 class CountResult : public AggregationResult

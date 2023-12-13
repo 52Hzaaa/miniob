@@ -21,6 +21,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "net/concrete_aggregation.h"
 
+#include <regex>
+
 PlainCommunicator::PlainCommunicator()
 {
   send_message_delimiter_.assign(1, '\0');
@@ -166,6 +168,13 @@ RC PlainCommunicator::write_result(SessionEvent *event, bool &need_disconnect)
   return rc;
 }
 
+void transformToUpper(std::string &s)
+{
+    for (char& c : s) {
+        c = std::toupper(static_cast<unsigned char>(c));
+    }
+}
+
 RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disconnect)
 {
   RC rc = RC::SUCCESS;
@@ -222,15 +231,6 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
 
   rc = RC::SUCCESS;
   Tuple *tuple = nullptr;
-  /*
-  enum class AggregationType
-{
-  COUNT_OP,
-  MAX_OP,
-  MIN_OP,
-  AVG_OP,
-  NO_AT
-};*/
   if(sql_result->getAggregationFlag()){
     //构建result 数组
     std::vector<AggregationResult*> results;
@@ -249,6 +249,25 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
         results.push_back(new CountResult());
       }
     }
+    //构建agg表头
+    std::vector<std::string> aggregates; //储存结果
+    std::regex pattern("SELECT\\s+(.*?)\\s+FROM");
+    std::string str = event->query();
+
+    std::smatch match;
+    if (std::regex_search(str, match, pattern)) {
+        std::string aggregate_expression = match[1].str();
+        // 使用逗号分隔符将聚合表达式拆分成多个子串
+        std::string delimiter = ",";
+        size_t pos = 0;
+        std::string token;
+        while ((pos = aggregate_expression.find(delimiter)) != std::string::npos) {
+            token = aggregate_expression.substr(0, pos);
+            aggregates.push_back(token);
+            aggregate_expression.erase(0, pos + delimiter.length());
+        }
+        aggregates.push_back(aggregate_expression);
+    }
     //processData
     while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
       assert(tuple != nullptr);
@@ -263,12 +282,29 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
         results[i]->processDate(value);
       }
     }
+    //输出表头
+    for(int i=0;i<aggregates.size();++i){
+      if (i != 0) {
+        const char *delim = " | ";
+        rc = writer_->writen(delim, strlen(delim));
+        if (OB_FAIL(rc)) {
+          LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+          sql_result->close();
+          return rc;
+        }
+      }
+      transformToUpper(aggregates[i]);
+
+      rc = writer_->writen(aggregates[i].data(), aggregates[i].size());
+    }
+
     char newline = '\n';
     rc = writer_->writen(&newline, 1);
-    std::string ans="";
+    //std::string ans="";
+    //输出结果
     for(int i=0;i<results.size();++i){
       if (i != 0) {
-        ans+=" | ";
+        //ans+=" | ";
         const char *delim = " | ";
         rc = writer_->writen(delim, strlen(delim));
         if (OB_FAIL(rc)) {
@@ -278,13 +314,13 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
         }
       }
       std::string s=results[i]->getResult();
-      ans+=s;
+      //ans+=s;
       rc = writer_->writen(s.data(), s.size());
     }
     //这里是为了应对测试集，不多输出一次，结果测试机出不了。。
     rc = writer_->writen(&newline, 1);
-    rc = writer_->writen(ans.data(), ans.size());
-    rc = writer_->writen(&newline, 1);
+    // rc = writer_->writen(ans.data(), ans.size());
+    // rc = writer_->writen(&newline, 1);
   }
   else
   {
@@ -327,99 +363,10 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
       }
     }
   }
-
-
-  // else if(sql_result->getAggregationType()==AggregationType::AVG_OP){
-  //   AvgResult* result=new AvgResult();
-  //    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
-  //       Value value;
-  //       rc = tuple->cell_at(0, value);
-  //       result->processDate(value);
-  //       if (rc != RC::SUCCESS) {
-  //         sql_result->close();
-  //         return rc;
-  //       }
-  //    }
-  //   std::string s=result->getResult();
-  //   rc = writer_->writen(s.data(), s.size());
-  //   delete result;
-  //   if (OB_FAIL(rc)) {
-  //     LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-  //     sql_result->close();
-  //     return rc;
-  //   }
-  //   char newline = '\n';
-  //   rc = writer_->writen(&newline, 1);
-  // }
-  // else if(sql_result->getAggregationType()==AggregationType::MAX_OP){
-  //    MaxResult* result=new MaxResult();
-  //    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
-  //       Value value;
-  //       rc = tuple->cell_at(0, value);
-  //       result->processDate(value);
-  //       if (rc != RC::SUCCESS) {
-  //         sql_result->close();
-  //         return rc;
-  //       }
-  //    }
-  //   rc = writer_->writen(result->getResult().data(), result->getResult().size());
-  //   delete result;
-  //   if (OB_FAIL(rc)) {
-  //     LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-  //     sql_result->close();
-  //     return rc;
-  //   }
-  //   char newline = '\n';
-  //   rc = writer_->writen(&newline, 1);
-  // }
-  // else if(sql_result->getAggregationType()==AggregationType::MIN_OP){
-  //   MinResult* result=new MinResult();
-  //   while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
-  //       Value value;
-  //       rc = tuple->cell_at(0, value);
-  //       result->processDate(value);
-  //       if (rc != RC::SUCCESS) {
-  //         sql_result->close();
-  //         return rc;
-  //       }
-  //   }
-  //   rc = writer_->writen(result->getResult().data(), result->getResult().size());
-  //   delete result;
-  //   if (OB_FAIL(rc)) {
-  //     LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-  //     sql_result->close();
-  //     return rc;
-  //   }
-  //   char newline = '\n';
-  //   rc = writer_->writen(&newline, 1);
-  // }
-  // else if(sql_result->getAggregationType()==AggregationType::COUNT_OP){
-  //   CountResult* result=new CountResult();
-  //   while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
-  //       Value value;
-  //       rc = tuple->cell_at(0, value);
-  //       result->processDate(value);
-  //       if (rc != RC::SUCCESS) {
-  //         sql_result->close();
-  //         return rc;
-  //       }
-  //   }
-  //   rc = writer_->writen(result->getResult().data(), result->getResult().size());
-  //   delete result;
-  //   if (OB_FAIL(rc)) {
-  //     LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-  //     sql_result->close();
-  //     return rc;
-  //   }
-  //   char newline = '\n';
-  //   rc = writer_->writen(&newline, 1);
-  // }
- 
-
   if (rc == RC::RECORD_EOF) {
     rc = RC::SUCCESS;
   }
-
+  //
   if (cell_num == 0&&!sql_result->getAggregationFlag()) {
     // 除了select之外，其它的消息通常不会通过operator来返回结果，表头和行数据都是空的
     // 这里针对这种情况做特殊处理，当表头和行数据都是空的时候，就返回处理的结果

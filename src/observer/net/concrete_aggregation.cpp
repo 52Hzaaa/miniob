@@ -2,6 +2,10 @@
 
 void AvgResult::processDate(Value &value)
 {
+  if (value.attr_type() == CHARS&&value.get_string()=="null") {
+    hasNull=true;
+    return;
+  }
   if (valueSum_.attr_type() == UNDEFINED) {
     valueSum_.set_type(value.attr_type());
   }
@@ -23,11 +27,18 @@ std::string AvgResult::getResult()
     valueSum_.set_float(valueSum_.get_float() / tupleNum_);
     return valueSum_.to_string();
   }
+  if(hasNull){
+    return "NULL";
+  }
   return "error";
 }
 ///////////////////////////////////////////////////////////////
 void MaxResult::processDate(Value &value)
 {
+  if (value.attr_type() == CHARS&&value.get_string()=="null") {
+    hasNull=true;
+    return;
+  }
   if (valueSum_.attr_type() == UNDEFINED) {
       valueSum_.set_type(value.attr_type());
       if (valueSum_.attr_type() == INTS) {
@@ -66,11 +77,18 @@ std::string MaxResult::getResult()
     if (valueSum_.attr_type() == CHARS) {
       return valueSum_.to_string();
     }
+    if(hasNull){
+      return "NULL";
+    }
     return "error";
 }
 //////////////////////////////////////////////
 void MinResult::processDate(Value &value)
 {
+  if (value.attr_type() == CHARS&&value.get_string()=="null") {
+    hasNull =true;
+    return;
+  }
   if (valueSum_.attr_type() == UNDEFINED) {
       valueSum_.set_type(value.attr_type());
       if (valueSum_.attr_type() == INTS) {
@@ -110,8 +128,17 @@ std::string MinResult::getResult()
     if (valueSum_.attr_type() == CHARS) {
       return valueSum_.to_string();
     }
+    if(hasNull){
+      return "NULL";
+    }
     return "error";
 }
 //////////////////////////////////////////////////
-void        CountResult::processDate(Value &value) { tupleNum_++; }
+void        CountResult::processDate(Value &value)
+{ 
+  if (value.attr_type() == CHARS&&value.get_string()=="null") {
+    return;
+  }
+  tupleNum_++; 
+}
 std::string CountResult::getResult() { return std::to_string(tupleNum_); }

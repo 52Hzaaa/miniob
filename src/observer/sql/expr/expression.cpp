@@ -127,7 +127,9 @@ RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &re
       rc = RC::INTERNAL;
     } break;
   }
-
+  if((right.isNull()||left.isNull())&&(comp_!=IS_NOT_NULL&&comp_!=IS_NULL)){
+    result=false;  
+  }
   return rc;
 }
 
