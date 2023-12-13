@@ -100,7 +100,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     }
     //在这里判断左右值的数据类型是否匹配
     if(!condition.right_is_attr){
-      if(condition.right_value.attr_type()!=field->type()){
+      if(condition.right_value.attr_type()!=field->type()&&!condition.right_value.isNull()){
         return RC::INVALID_ARGUMENT;
       }
     }

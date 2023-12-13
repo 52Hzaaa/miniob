@@ -263,6 +263,9 @@ int Value::compare(const Value &other) const
     float other_data = other.num_value_.int_value_;
     return common::compare_float((void *)&this->num_value_.float_value_, (void *)&other_data);
   }
+  else if(this->isNull_||other.isNull_){
+    return 1;
+  }
   LOG_WARN("not supported");
   //特例 返回int的最小值 用于表示类型不匹配
   return std::numeric_limits<int> ::min();  // TODO return rc?

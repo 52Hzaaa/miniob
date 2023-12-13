@@ -77,6 +77,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         DATE_T
         INT_T
         STRING_T
+        IS_T
         NOT_T
         NULL_T
         NULLABLE_T
@@ -746,6 +747,8 @@ comp_op:
     | LE { $$ = LESS_EQUAL; }
     | GE { $$ = GREAT_EQUAL; }
     | NE { $$ = NOT_EQUAL; }
+    | IS_T {$$=IS_NULL;}
+    | IS_T NOT_T {$$=IS_NOT_NULL;}
     ;
 
 load_data_stmt:
