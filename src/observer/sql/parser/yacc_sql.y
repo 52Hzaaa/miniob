@@ -731,8 +731,13 @@ where:
     | WHERE condition_list {
       $$ = $2;  
     }
-    | ON condition_list{
+    | ON condition_list where{
       $$ = $2;
+      if($3!=nullptr){
+        for(int i=0;i<$3->size();++i){
+          $$->push_back((*$3)[i]);
+        }
+      }
     }
     ;
 condition_list:
