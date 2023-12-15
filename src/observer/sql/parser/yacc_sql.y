@@ -105,7 +105,10 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         COUNT
         AVG
         MIN
-        MAX        
+        MAX
+        INNER
+        JOIN
+
 
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
@@ -458,15 +461,7 @@ update_stmt:      /*  update 语句的语法解析树*/
       free($4);
     }
     ;
-/*
-      struct SelectSqlNode
-      {
-        AggregationType                 aggregation_type=AggregationType::NO_AT;
-        std::vector<RelAttrSqlNode>     attributes;    ///< attributes in select clause
-        std::vector<std::string>        relations;     ///< 查询的表
-        std::vector<ConditionSqlNode>   conditions;    ///< 查询条件，使用AND串联起来多个条件
-      };
-*/
+
 select_stmt:        /*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where
     {
@@ -649,6 +644,11 @@ rel_list:
       $$->push_back($2);
       free($2);
     }
+    | INNER JOIN ID  {
+        $$ = new std::vector<std::string>;
+        $$->push_back($3);
+        free($3);
+	  }
     ;
 aggregation_type:
     COUNT {
@@ -671,6 +671,9 @@ where:
     }
     | WHERE condition_list {
       $$ = $2;  
+    }
+    | ON condition_list{
+      $$ = $2;
     }
     ;
 condition_list:
