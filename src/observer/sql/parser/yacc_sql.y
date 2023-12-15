@@ -118,6 +118,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   Value *                           value;
   enum CompOp                       comp;
   enum AggregationType              aggregation_type;
+  InnerJoinNode *                   inner_join;
+  InnerJoinNode *                   inner_join_list;
   RelAttrSqlNode *                  rel_attr;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
@@ -146,6 +148,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <number>              number
 %type <comp>                comp_op
 %type <aggregation_type>    aggregation_type
+%type <inner_join_list>    inner_join_list
+%type <inner_join_list>    inner_join
 %type <rel_attr>    aggregation_attr
 %type <rel_attr_list>    aggregation_list
 %type <rel_attr>            rel_attr
@@ -483,6 +487,36 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
       free($4);
     }
+    |SELECT select_attr FROM ID inner_join inner_join_list{
+      $$ = new ParsedSqlNode(SCF_SELECT);
+      if ($2 != nullptr) {
+        $$->selection.attributes.swap(*$2); //将S2赋值给select属性列表
+        delete $2;
+      }
+      if($6!=nullptr){
+        for(int i=0;i<$5->relations.size();++i){
+          $6->relations.push_back($5->relations[i]);
+        }
+        $6->relations.push_back($4);
+        $$->selection.relations.swap($6->relations);
+        std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
+
+        for(int i=0;i<$5->conditions.size();++i){
+          $6->conditions.push_back($5->conditions[i]);
+        }
+        $$->selection.conditions.swap($6->conditions);
+        free($4);
+        delete($5);
+        delete($6);
+      }
+      else{
+        $5->relations.push_back($4);
+        $$->selection.relations.swap($5->relations);
+        std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
+        $$->selection.conditions.swap($5->conditions);
+        delete($5);
+      }
+    }
     ;
 
 calc_stmt:
@@ -597,6 +631,34 @@ aggregation_list:
     }
     ;
 
+inner_join:
+INNER JOIN ID where{
+  $$=new InnerJoinNode;
+  $$->relations.push_back($3);
+  $$->conditions.swap(*$4);
+};
+
+inner_join_list: 
+/*empty*/
+{
+  $$=nullptr;
+}
+| inner_join inner_join_list{
+  if($2!=nullptr){
+    $$=$2;
+    for(int i=0;i<$1->relations.size();++i){
+      $$->relations.push_back($1->relations[i]);
+    }
+    for(int i=0;i<$1->conditions.size();++i){
+      $$->conditions.push_back($1->conditions[i]);
+    }
+  }
+  else{
+    $$=$1;
+  }
+}
+;
+
 rel_attr:
     ID {
       $$ = new RelAttrSqlNode;
@@ -644,12 +706,8 @@ rel_list:
       $$->push_back($2);
       free($2);
     }
-    | INNER JOIN ID  {
-        $$ = new std::vector<std::string>;
-        $$->push_back($3);
-        free($3);
-	  }
     ;
+
 aggregation_type:
     COUNT {
       $$ = AggregationType::COUNT_OP;
@@ -664,6 +722,7 @@ aggregation_type:
       $$ = AggregationType::MIN_OP;
     }
     ;   
+
 where:
     /* empty */
     {

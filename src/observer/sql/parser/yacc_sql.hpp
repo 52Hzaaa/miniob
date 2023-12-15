@@ -129,6 +129,8 @@ union YYSTYPE
   Value *                           value;
   enum CompOp                       comp;
   enum AggregationType              aggregation_type;
+  InnerJoinNode *                   inner_join;
+  InnerJoinNode *                   inner_join_list;
   RelAttrSqlNode *                  rel_attr;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
@@ -142,7 +144,7 @@ union YYSTYPE
   int                               number;
   float                             floats;
 
-#line 146 "yacc_sql.hpp"
+#line 148 "yacc_sql.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
