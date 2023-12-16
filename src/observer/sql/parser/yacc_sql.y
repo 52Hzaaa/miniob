@@ -126,6 +126,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   Expression *                      expression;
   std::vector<Expression *> *       expression_list;
   std::vector<Value> *              value_list;
+  std::vector<Value> *              record;
+  std::vector<std::vector<Value> >*      record_list;
   std::vector<ConditionSqlNode> *   condition_list;
   std::vector<RelAttrSqlNode> *     rel_attr_list;
   std::vector<std::string> *        relation_list;
@@ -150,6 +152,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <aggregation_type>    aggregation_type
 %type <inner_join_list>    inner_join_list
 %type <inner_join_list>    inner_join
+%type <record>             record
+%type <record_list>        record_list
 %type <rel_attr>    aggregation_attr
 %type <rel_attr_list>    aggregation_list
 %type <rel_attr>            rel_attr
@@ -383,20 +387,52 @@ type:
     | DATE_T   { $$=DATES; }
     ;
 insert_stmt:        /*insert   语句的语法解析树*/
-    INSERT INTO ID VALUES LBRACE value value_list RBRACE 
+    INSERT INTO ID VALUES record record_list
     {
       $$ = new ParsedSqlNode(SCF_INSERT);
       $$->insertion.relation_name = $3;
-      if ($7 != nullptr) {
-        $$->insertion.values.swap(*$7);
+      if ($6 != nullptr) {
+        $$->insertion.records.swap(*$6);
       }
-      $$->insertion.values.emplace_back(*$6);
-      std::reverse($$->insertion.values.begin(), $$->insertion.values.end());
+      $$->insertion.records.emplace_back(*$5);
+      std::reverse($$->insertion.records.begin(), $$->insertion.records.end());
+      delete $5;
       delete $6;
       free($3);
     }
     ;
-
+/*   【vector<Value>*】   */
+record:
+    LBRACE value value_list RBRACE
+    {
+      if ($3 != nullptr) {
+        $$=$3;
+        $$->emplace_back(*$2);
+        std::reverse($$->begin(), $$->end());
+      }
+      else{
+        $$ = new std::vector<Value>;
+        $$->emplace_back(*$2);
+      }
+    };
+/*   【vector< vector<Value> >*】   */
+record_list:
+  /*empty*/
+  {
+    $$=nullptr;
+  }
+  | COMMA record record_list
+  {
+    if($3!=nullptr){
+      $$=$3;
+      $$->push_back(*$2);
+    }
+    else{
+      $$=new std::vector<std::vector<Value> >;
+       $$->push_back(*$2);
+    }
+  }
+  ;
 value_list:
     /* empty */
     {

@@ -19,6 +19,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/logical_operator.h"
 #include "sql/parser/parse_defs.h"
 
+using namespace std;
+
 /**
  * @brief 插入逻辑算子
  * @ingroup LogicalOperator
@@ -26,7 +28,7 @@ See the Mulan PSL v2 for more details. */
 class InsertLogicalOperator : public LogicalOperator
 {
 public:
-  InsertLogicalOperator(Table *table, std::vector<Value> values);
+  InsertLogicalOperator(Table *table,   vector<vector<Value> > records);
   virtual ~InsertLogicalOperator() = default;
 
   LogicalOperatorType type() const override
@@ -35,10 +37,11 @@ public:
   }
 
   Table *table() const { return table_; }
-  const std::vector<Value> &values() const { return values_; }
-  std::vector<Value> &values() { return values_; }
+  const  vector<vector<Value> > &records() const { return records_; }
+  vector<vector<Value> > &records() { return records_; }
 
 private:
   Table *table_ = nullptr;
-  std::vector<Value> values_;
+  //std::vector<Value> values_;
+  vector<vector<Value> > records_;
 };
