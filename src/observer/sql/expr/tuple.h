@@ -163,7 +163,6 @@ public:
   {
     return speces_.size();
   }
-  //domtodo
   RC cell_at(int index, Value &cell) const override
   {
     if (index < 0 || index >= static_cast<int>(speces_.size())) {
