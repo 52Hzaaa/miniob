@@ -103,5 +103,6 @@ public:
    * 如果没有更多的元素，返回RECORD_EOF
    */
   virtual RC next_entry(RID *rid) = 0;
+  virtual RC next_entry(RID *rid,bool isParentDeleted) = 0;
   virtual RC destroy() = 0;
 };

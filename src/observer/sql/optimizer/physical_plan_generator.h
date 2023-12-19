@@ -42,10 +42,10 @@ public:
   PhysicalPlanGenerator() = default;
   virtual ~PhysicalPlanGenerator() = default;
 
-  RC create(LogicalOperator &logical_operator, std::unique_ptr<PhysicalOperator> &oper);
+  RC create(LogicalOperator &logical_operator, std::unique_ptr<PhysicalOperator> &oper,bool isPD=false);//最后一个参数表示父节点是否为deleteOP
 
 private:
-  RC create_plan(TableGetLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);
+  RC create_plan(TableGetLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper,bool isPD=false);
   RC create_plan(PredicateLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);
   RC create_plan(ProjectLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);
   RC create_plan(InsertLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);

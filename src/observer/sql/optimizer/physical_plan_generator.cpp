@@ -39,7 +39,7 @@ See the Mulan PSL v2 for more details. */
 
 using namespace std;
 
-RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<PhysicalOperator> &oper)
+RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<PhysicalOperator> &oper,bool isPD)
 {
   RC rc = RC::SUCCESS;
 
@@ -49,7 +49,7 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
     } break;
 
     case LogicalOperatorType::TABLE_GET: {
-      return create_plan(static_cast<TableGetLogicalOperator &>(logical_operator), oper);
+      return create_plan(static_cast<TableGetLogicalOperator &>(logical_operator), oper,isPD);
     } break;
 
     case LogicalOperatorType::PREDICATE: {
@@ -85,7 +85,7 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
   return rc;
 }
 
-RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, unique_ptr<PhysicalOperator> &oper)
+RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, unique_ptr<PhysicalOperator> &oper,bool isPD)
 {
   vector<unique_ptr<Expression>> &predicates = table_get_oper.predicates();
   // 看看是否有可以用于索引查找的表达式
@@ -138,7 +138,9 @@ RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, u
     IndexScanPhysicalOperator *index_scan_oper = new IndexScanPhysicalOperator(
           table, index, table_get_oper.readonly(), 
           &value, true /*left_inclusive*/, 
-          &value, true /*right_inclusive*/);
+          &value, true /*right_inclusive*/,
+          isPD
+          );
           
     index_scan_oper->set_predicates(std::move(predicates));
     oper = unique_ptr<PhysicalOperator>(index_scan_oper);
@@ -226,7 +228,7 @@ RC PhysicalPlanGenerator::create_plan(DeleteLogicalOperator &delete_oper, unique
   RC rc = RC::SUCCESS;
   if (!child_opers.empty()) {
     LogicalOperator *child_oper = child_opers.front().get();
-    rc = create(*child_oper, child_physical_oper);
+    rc = create(*child_oper, child_physical_oper,true);
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to create physical operator. rc=%s", strrc(rc));
       return rc;

@@ -27,7 +27,7 @@ class IndexScanPhysicalOperator : public PhysicalOperator
 public:
   IndexScanPhysicalOperator(Table *table, Index *index, bool readonly, 
       const Value *left_value, bool left_inclusive,
-      const Value *right_value, bool right_inclusive);
+      const Value *right_value, bool right_inclusive ,bool isPD=false);
 
   virtual ~IndexScanPhysicalOperator() = default;
 
@@ -67,5 +67,7 @@ private:
   bool left_inclusive_ = false;
   bool right_inclusive_ = false;
 
+  bool isPD_= false;
+  bool isParentDeleted =false;//父节点是否已经被删除
   std::vector<std::unique_ptr<Expression>> predicates_;
 };

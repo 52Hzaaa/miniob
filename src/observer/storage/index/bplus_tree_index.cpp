@@ -135,6 +135,11 @@ RC BplusTreeIndexScanner::next_entry(RID *rid)
   return tree_scanner_.next_entry(*rid);
 }
 
+RC BplusTreeIndexScanner::next_entry(RID *rid,bool isParentDeleted)
+{
+  return tree_scanner_.next_entry(*rid,isParentDeleted);
+}
+
 RC BplusTreeIndexScanner::destroy()
 {
   delete this;

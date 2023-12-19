@@ -15,16 +15,18 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/index_scan_physical_operator.h"
 #include "storage/index/index.h"
 #include "storage/trx/trx.h"
+#include "event/sql_debug.h"
 
 IndexScanPhysicalOperator::IndexScanPhysicalOperator(
     Table *table, Index *index, bool readonly, 
     const Value *left_value, bool left_inclusive, 
-    const Value *right_value, bool right_inclusive)
+    const Value *right_value, bool right_inclusive,bool isPD)
     : table_(table), 
       index_(index), 
       readonly_(readonly), 
       left_inclusive_(left_inclusive), 
-      right_inclusive_(right_inclusive)
+      right_inclusive_(right_inclusive),
+      isPD_(isPD)
 {
   if (left_value) {
     left_value_ = *left_value;
@@ -73,13 +75,15 @@ RC IndexScanPhysicalOperator::next()
   record_page_handler_.cleanup();
 
   bool filter_result = false;
-  while (RC::SUCCESS == (rc = index_scanner_->next_entry(&rid))) {
+  while (RC::SUCCESS == (rc = index_scanner_->next_entry(&rid,isParentDeleted))) {
     rc = record_handler_->get_record(record_page_handler_, &rid, readonly_, &current_record_);
     if (rc != RC::SUCCESS) {
       return rc;
     }
 
     tuple_.set_record(&current_record_);
+    sql_debug("index scan get a tuple: %s,and rid is %s", tuple_.to_string().c_str(),rid.to_string().c_str());
+    isParentDeleted =false;
     rc = filter(tuple_, filter_result);
     if (rc != RC::SUCCESS) {
       return rc;
@@ -88,7 +92,9 @@ RC IndexScanPhysicalOperator::next()
     if (!filter_result) {
       continue;
     }
-
+    if(isPD_){
+      isParentDeleted =true;
+    }
     rc = trx_->visit_record(table_, current_record_, readonly_);
     if (rc == RC::RECORD_INVISIBLE) {
       continue;

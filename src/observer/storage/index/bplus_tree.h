@@ -608,6 +608,7 @@ public:
           const char *right_user_key, int right_len, bool right_inclusive);
 
   RC next_entry(RID &rid);
+  RC next_entry(RID &rid,bool preHadDelete);
 
   RC close();
 
