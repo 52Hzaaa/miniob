@@ -65,7 +65,15 @@ RC ParseStage::handle_request(SQLStageEvent *sql_event)
         agg.push_back(sql_node->selection.attributes[i].aggregation_type);
       }
       sql_result->setAggregationType(agg);
-    }    
+    }
+    if(sql_node->selection.has_order){
+      sql_result->setOrderFlag(true);
+      std::vector<bool> isASC;
+      for(int i=0;i<sql_node->selection.order_attributes.size();i++){
+        isASC.push_back(sql_node->selection.order_attributes[i].isASC);
+      }
+      sql_result->setisASC(isASC);
+    }  
   }
   sql_event->set_sql_node(std::move(sql_node));
 

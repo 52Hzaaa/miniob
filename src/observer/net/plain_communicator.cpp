@@ -22,6 +22,25 @@ See the Mulan PSL v2 for more details. */
 #include "net/concrete_aggregation.h"
 
 #include <regex>
+using namespace std;
+
+vector<bool> isASC_;
+int startIdx_;
+int maxTimes;
+
+bool compare(vector<Value>& a,vector<Value>& b){
+    int times=0;
+    while( startIdx_ < maxTimes && a[startIdx_].compare(b[startIdx_])==0){
+        startIdx_++;
+        times++;
+    }
+    if(isASC_[times]){
+        return a[startIdx_].compare(b[startIdx_])<0;
+    }
+    else{
+        return a[startIdx_].compare(b[startIdx_])>0;
+    }
+}
 
 PlainCommunicator::PlainCommunicator()
 {
@@ -321,6 +340,51 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
     rc = writer_->writen(&newline, 1);
     // rc = writer_->writen(ans.data(), ans.size());
     // rc = writer_->writen(&newline, 1);
+  }
+  else if(sql_result->getOrderFlag()){
+    vector <vector<Value> > data;
+    while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+      assert(tuple != nullptr);
+      vector<Value> cur;
+      int cell_num = tuple->cell_num();
+      for (int i = 0; i < cell_num; i++) {
+        Value value;
+        rc = tuple->cell_at(i, value);
+        if (rc != RC::SUCCESS) {
+          sql_result->close();
+          return rc;
+        }
+        cur.push_back(value);
+      }
+      data.push_back(cur);
+    }
+    isASC_=sql_result->getIsASC();
+    startIdx_=data[0].size()-isASC_.size();
+    maxTimes=data[0].size();
+    sort(data.begin(),data.end(),compare);
+    for(int i=0;i<data.size();++i){
+      for(int j=0;j<data[0].size()-isASC_.size();++j){
+          if (j != 0) {
+          const char *delim = " | ";
+          rc = writer_->writen(delim, strlen(delim));
+          if (OB_FAIL(rc)) {
+            LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+            sql_result->close();
+            return rc;
+          }
+          }
+          std::string cell_str = data[i][j].to_string();
+          rc = writer_->writen(cell_str.data(), cell_str.size());
+      }
+      char newline = '\n';
+      rc = writer_->writen(&newline, 1);
+      if (OB_FAIL(rc)) {
+        LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+        sql_result->close();
+        return rc;
+      }
+    }
+
   }
   else
   {

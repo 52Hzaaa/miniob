@@ -51,7 +51,12 @@ struct RelAttrSqlNode
   std::string     attribute_name;  ///< attribute name              属性名
   AggregationType aggregation_type = AggregationType::NO_AT;
 };
-
+struct OrdAttrSqlNode
+{
+  std::string     relation_name;   ///< relation name (may be NULL) 表名
+  std::string     attribute_name;  ///< attribute name              属性名
+  bool            isASC=true;
+};
 /**
  * @brief 描述比较运算符
  * @ingroup SQLParser
@@ -111,8 +116,10 @@ struct InnerJoinNode{
 struct SelectSqlNode
 {
   bool has_aggregation = false;
+  bool has_order=false;
   // 常规语句
   std::vector<RelAttrSqlNode>   attributes;  ///< attributes in select clause
+  std::vector<OrdAttrSqlNode>   order_attributes; //排序关键字
   std::vector<std::string>      relations;   ///< 查询的表
   std::vector<ConditionSqlNode> conditions;  ///< 查询条件，使用AND串联起来多个条件
 };

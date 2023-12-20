@@ -82,9 +82,28 @@ public:
   bool getAggregationFlag(){
     return has_aggregation;
   }
+
+  void setOrderFlag(bool flag){
+    has_order=flag;
+  }
+  bool getOrderFlag(){
+    return has_order;
+  }
+
+  void setisASC(std::vector<bool>& isASC){
+    isASC_.swap(isASC);
+  }
+  std::vector<bool>& getIsASC(){
+    return isASC_;
+  }
+
 private:
   bool has_aggregation = false;
   std::vector<AggregationType> aggregation_type_;
+
+  bool has_order=false;
+  std::vector<bool> isASC_;
+
   Session *session_ = nullptr; ///< 当前所属会话
   std::unique_ptr<PhysicalOperator> operator_;  ///< 执行计划
   TupleSchema tuple_schema_;   ///< 返回的表头信息。可能有也可能没有

@@ -108,12 +108,15 @@ extern int yydebug;
     MAX = 309,                     /* MAX  */
     INNER = 310,                   /* INNER  */
     JOIN = 311,                    /* JOIN  */
-    NUMBER = 312,                  /* NUMBER  */
-    FLOAT = 313,                   /* FLOAT  */
-    ID = 314,                      /* ID  */
-    DATE_STR = 315,                /* DATE_STR  */
-    SSS = 316,                     /* SSS  */
-    UMINUS = 317                   /* UMINUS  */
+    ORDER = 312,                   /* ORDER  */
+    BY = 313,                      /* BY  */
+    ASC = 314,                     /* ASC  */
+    NUMBER = 315,                  /* NUMBER  */
+    FLOAT = 316,                   /* FLOAT  */
+    ID = 317,                      /* ID  */
+    DATE_STR = 318,                /* DATE_STR  */
+    SSS = 319,                     /* SSS  */
+    UMINUS = 320                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -122,7 +125,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 115 "yacc_sql.y"
+#line 118 "yacc_sql.y"
 
   ParsedSqlNode *                   sql_node;
   ConditionSqlNode *                condition;
@@ -131,6 +134,8 @@ union YYSTYPE
   enum AggregationType              aggregation_type;
   InnerJoinNode *                   inner_join;
   InnerJoinNode *                   inner_join_list;
+  OrdAttrSqlNode *                  order;
+  std::vector<OrdAttrSqlNode> *     order_list; 
   RelAttrSqlNode *                  rel_attr;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
@@ -147,7 +152,7 @@ union YYSTYPE
   int                               number;
   float                             floats;
 
-#line 151 "yacc_sql.hpp"
+#line 156 "yacc_sql.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

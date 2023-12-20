@@ -108,6 +108,9 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         MAX
         INNER
         JOIN
+        ORDER
+        BY
+        ASC
 
 
 
@@ -120,6 +123,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   enum AggregationType              aggregation_type;
   InnerJoinNode *                   inner_join;
   InnerJoinNode *                   inner_join_list;
+  OrdAttrSqlNode *                  order;
+  std::vector<OrdAttrSqlNode> *     order_list; 
   RelAttrSqlNode *                  rel_attr;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
@@ -153,6 +158,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <aggregation_type>    aggregation_type
 %type <inner_join_list>    inner_join_list
 %type <inner_join_list>    inner_join
+%type <order>              order
+%type <order_list>         order_list
 %type <record>             record
 %type <record_list>        record_list
 %type <index_attr_list>    index_attr_list
@@ -536,6 +543,7 @@ select_stmt:        /*  select 语句的语法解析树*/
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       if ($2 != nullptr) {
+        reverse($2->begin(),$2->end());
         $$->selection.attributes.swap(*$2); //将S2赋值给select属性列表
         delete $2;
       }
@@ -552,6 +560,7 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
       free($4);
     }
+    /*这里的orderby先不加了*/
     |SELECT select_attr FROM ID inner_join inner_join_list{
       $$ = new ParsedSqlNode(SCF_SELECT);
       if ($2 != nullptr) {
@@ -581,6 +590,37 @@ select_stmt:        /*  select 语句的语法解析树*/
         $$->selection.conditions.swap($5->conditions);
         delete($5);
       }
+    }
+    |SELECT select_attr FROM ID rel_list where ORDER BY order order_list{
+      $$ = new ParsedSqlNode(SCF_SELECT);
+      if ($2 != nullptr) {
+        reverse($2->begin(),$2->end());
+        $$->selection.attributes.swap(*$2); //将S2赋值给select属性列表
+        delete $2;
+      }
+      if ($5 != nullptr) {
+        $$->selection.relations.swap(*$5);
+        delete $5;
+      }
+      $$->selection.relations.push_back($4);
+      std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
+
+      if ($6 != nullptr) {
+        $$->selection.conditions.swap(*$6);
+        delete $6;
+      }
+      free($4);
+
+      $$->selection.has_order=true;
+      if($10!=nullptr){
+        $10->push_back(*$9);
+        reverse($10->begin(),$10->end());
+        $$->selection.order_attributes.swap(*$10);
+      }
+      else{
+       $$->selection.order_attributes.push_back(*$9);
+      }
+      delete $9;
     }
     ;
 
@@ -723,6 +763,46 @@ inner_join_list:
   }
 }
 ;
+
+order:
+  rel_attr{
+    $$=new OrdAttrSqlNode;
+    $$->relation_name=$1->relation_name;
+    $$->attribute_name=$1->attribute_name;
+    delete $1;
+  }
+  |rel_attr ASC{
+    $$=new OrdAttrSqlNode;
+    $$->relation_name=$1->relation_name;
+    $$->attribute_name=$1->attribute_name;
+    delete $1;
+  }
+  |rel_attr DESC{
+    $$=new OrdAttrSqlNode;
+    $$->relation_name=$1->relation_name;
+    $$->attribute_name=$1->attribute_name;
+    $$->isASC=false;
+    delete $1;
+  }
+  ;
+
+order_list:
+  /*empty*/
+  {
+    $$=nullptr;
+  }
+  |COMMA order order_list{
+    if($3!=nullptr){
+      $$=$3;
+      $$->push_back(*$2);
+    }
+    else{
+      $$=new std::vector<OrdAttrSqlNode>;
+      $$->push_back(*$2);
+    }
+    delete $2;
+  }
+  ;
 
 rel_attr:
     ID {

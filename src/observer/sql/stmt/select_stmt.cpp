@@ -42,7 +42,7 @@ static void get_first_field(Table *table, std::vector<Field> &field_metas)
   field_metas.push_back(Field(table, table_meta.field(0)));
 }
 
-RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
+RC SelectStmt::create(Db *db,SelectSqlNode &select_sql, Stmt *&stmt)
 {
   if (nullptr == db) {
     LOG_WARN("invalid argument. db is null");
@@ -72,8 +72,15 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   // collect query fields in `select` statement
 
   std::vector<Field> query_fields;
-  //std::vector<AggregationType> aggregation_type;
-  for (int i = static_cast<int>(select_sql.attributes.size()) - 1; i >= 0; i--) {
+  //domtodo这里暂时先把排序关键字也放query_fields中看看行不行
+  for(int i=0;i<select_sql.order_attributes.size();++i){
+    RelAttrSqlNode tmp;
+    tmp.attribute_name=select_sql.order_attributes[i].attribute_name;
+    tmp.relation_name=select_sql.order_attributes[i].relation_name;
+    select_sql.attributes.push_back(tmp);
+  }
+  //这里把语法分析改了 在语法分析直接先反转了，这里正序
+  for (int i = 0; i < select_sql.attributes.size(); i++) {
     const RelAttrSqlNode &relation_attr = select_sql.attributes[i];
     //如果为聚合函数
     if(select_sql.has_aggregation){
@@ -179,6 +186,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   // everything alright
   SelectStmt *select_stmt = new SelectStmt();
   // TODO add expression copy
+  select_stmt->outputSize_=query_fields.size()-select_sql.order_attributes.size();
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;

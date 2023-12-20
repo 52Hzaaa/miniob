@@ -76,7 +76,7 @@ public:
   void set_value(const Value &value);
 
   std::string to_string() const;
-
+  
   int compare(const Value &other) const;
 
   const char *data() const;

@@ -69,7 +69,9 @@ RC ExecuteStage::handle_request_with_physical_operator(SQLStageEvent *sql_event)
       SelectStmt *select_stmt = static_cast<SelectStmt *>(stmt);
       if(!select_stmt->has_aggregation()){
         bool with_table_name = select_stmt->tables().size() > 1;
-        for (const Field &field : select_stmt->query_fields()) {
+        //for (const Field &field : select_stmt->query_fields()) {
+        for (int i=0;i<select_stmt->getOutputSize();++i) {
+          const Field field= select_stmt->query_fields()[i];
           if (with_table_name) {
             schema.append_cell(field.table_name(), field.field_name());
           } else {
