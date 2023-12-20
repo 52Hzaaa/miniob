@@ -30,15 +30,16 @@ int maxTimes;
 
 bool compare(vector<Value>& a,vector<Value>& b){
     int times=0;
-    while( startIdx_ < maxTimes && a[startIdx_].compare(b[startIdx_])==0){
-        startIdx_++;
+    int idx=startIdx_;
+    while( idx < maxTimes && a[idx].compare(b[idx])==0){
+        idx++;
         times++;
     }
     if(isASC_[times]){
-        return a[startIdx_].compare(b[startIdx_])<0;
+        return a[idx].compare(b[idx])<0;
     }
     else{
-        return a[startIdx_].compare(b[startIdx_])>0;
+        return a[idx].compare(b[idx])>0;
     }
 }
 

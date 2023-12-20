@@ -61,7 +61,8 @@ RC ParseStage::handle_request(SQLStageEvent *sql_event)
       sql_node->selection.has_aggregation=true;
       sql_result->setAggregationFlag(true);
       std::vector<AggregationType> agg;
-      for(int i=sql_node->selection.attributes.size()-1;i>=0;i--){
+      //1220语法分析改了 这里同步把顺序改了
+      for(int i=0;i<sql_node->selection.attributes.size();i++){
         agg.push_back(sql_node->selection.attributes[i].aggregation_type);
       }
       sql_result->setAggregationType(agg);
