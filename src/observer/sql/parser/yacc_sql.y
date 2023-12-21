@@ -77,6 +77,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         DATE_T
         INT_T
         STRING_T
+        TEXT_T
         IS_T
         NOT_T
         NULL_T
@@ -412,6 +413,14 @@ attr_def:
       $$->length = 4;
       free($1);
     }
+    | ID TEXT_T
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = CHARS;
+      $$->name = $1;
+      $$->length = 4096;
+      free($1);
+    }
     ;
 number:
     NUMBER {$$ = $1;}
@@ -421,6 +430,7 @@ type:
     | STRING_T { $$=CHARS; }
     | FLOAT_T  { $$=FLOATS; }
     | DATE_T   { $$=DATES; }
+
     ;
 insert_stmt:        /*insert   语句的语法解析树*/
     INSERT INTO ID VALUES record record_list
