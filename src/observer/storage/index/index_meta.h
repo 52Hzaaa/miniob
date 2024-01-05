@@ -35,11 +35,14 @@ class IndexMeta
 public:
   IndexMeta() = default;
 
-  RC init(const char *name, const FieldMeta &field);
+  RC init(const char *name, const FieldMeta &field,bool isUnique);
 
 public:
   const char *name() const;
   const char *field() const;
+  bool isUnique(){
+    return isUnique_;
+  }
 
   void desc(std::ostream &os) const;
 
@@ -50,4 +53,5 @@ public:
 protected:
   std::string name_;   // index's name
   std::string field_;  // field's name
+  bool isUnique_;
 };

@@ -684,8 +684,9 @@ RC BufferPoolManager::open_file(const char *_file_name, DiskBufferPool *&_bp)
 
   std::scoped_lock lock_guard(lock_);
   if (buffer_pools_.find(file_name) != buffer_pools_.end()) {
-    LOG_WARN("file already opened. file name=%s", _file_name);
-    return RC::BUFFERPOOL_OPEN;
+    close_file(_file_name);
+    // LOG_WARN("file already opened. file name=%s", _file_name);
+    // return RC::BUFFERPOOL_OPEN;
   }
 
   DiskBufferPool *bp = new DiskBufferPool(*this, frame_manager_);

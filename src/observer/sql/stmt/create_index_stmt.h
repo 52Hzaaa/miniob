@@ -29,15 +29,17 @@ class FieldMeta;
 class CreateIndexStmt : public Stmt
 {
 public:
-  CreateIndexStmt(Table *table, const FieldMeta *field_meta, const std::string &index_name)
+  CreateIndexStmt(Table *table, const FieldMeta *field_meta, const std::string &index_name,bool isUnique)
         : table_(table),
           field_meta_(field_meta),
-          index_name_(index_name)
+          index_name_(index_name),
+          isUnique_(isUnique)
   {}
 
   virtual ~CreateIndexStmt() = default;
 
   StmtType type() const override { return StmtType::CREATE_INDEX; }
+  bool isUnique() {return isUnique_;}
 
   Table *table() const { return table_; }
   const FieldMeta *field_meta() const { return field_meta_; }
@@ -50,4 +52,5 @@ private:
   Table *table_ = nullptr;
   const FieldMeta *field_meta_ = nullptr;
   std::string index_name_;
+  bool isUnique_;
 };

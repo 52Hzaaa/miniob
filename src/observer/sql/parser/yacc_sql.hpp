@@ -112,12 +112,13 @@ extern int yydebug;
     ORDER = 313,                   /* ORDER  */
     BY = 314,                      /* BY  */
     ASC = 315,                     /* ASC  */
-    NUMBER = 316,                  /* NUMBER  */
-    FLOAT = 317,                   /* FLOAT  */
-    ID = 318,                      /* ID  */
-    DATE_STR = 319,                /* DATE_STR  */
-    SSS = 320,                     /* SSS  */
-    UMINUS = 321                   /* UMINUS  */
+    UNIQUE = 316,                  /* UNIQUE  */
+    NUMBER = 317,                  /* NUMBER  */
+    FLOAT = 318,                   /* FLOAT  */
+    ID = 319,                      /* ID  */
+    DATE_STR = 320,                /* DATE_STR  */
+    SSS = 321,                     /* SSS  */
+    UMINUS = 322                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -126,7 +127,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 119 "yacc_sql.y"
+#line 120 "yacc_sql.y"
 
   ParsedSqlNode *                   sql_node;
   ConditionSqlNode *                condition;
@@ -145,7 +146,6 @@ union YYSTYPE
   std::vector<Value> *              value_list;
   std::vector<Value> *              record;
   std::vector<std::vector<Value> >*      record_list;
-  std::vector<std::string >*        index_attr_list;
   std::vector<ConditionSqlNode> *   condition_list;
   std::vector<RelAttrSqlNode> *     rel_attr_list;
   std::vector<std::string> *        relation_list;

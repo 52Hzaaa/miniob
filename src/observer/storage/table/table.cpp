@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include <string.h>
 #include <algorithm>
 
+
 #include "common/defs.h"
 #include "storage/table/table.h"
 #include "storage/table/table_meta.h"
@@ -28,6 +29,33 @@ See the Mulan PSL v2 for more details. */
 #include "storage/index/index.h"
 #include "storage/index/bplus_tree_index.h"
 #include "storage/trx/trx.h"
+class CheckUnique{
+public:
+  void init(AttrType type,int attr_length,int attr_offset){
+    type_=type;
+    attr_length_=attr_length;
+    attr_offset_=attr_offset;
+  }
+  bool pushValue(char* data){
+    Value tmp=Value(data+attr_offset_,4);
+    string s=tmp.get_string();
+    if(values_.find(s)!=values_.end()){
+      return false;
+    }
+    else{
+      values_.insert(s);
+      return true;
+    }
+  }
+  std::unordered_set<string>& values(){
+    return values_;
+  }
+private:
+AttrType type_;
+int attr_offset_;
+int attr_length_;
+std::unordered_set<string> values_;
+};
 
 Table::~Table()
 {
@@ -142,22 +170,16 @@ RC Table::destroy(const char* dir) {
         LOG_ERROR("Failed to remove data file=%s, errno=%d", data_file.c_str(), errno);
         return RC::GENERIC_ERROR;
     }
-
-    // std::string text_data_file = std::string(dir) + "/" + name() + TABLE_TEXT_DATA_SUFFIX;
-    // if(unlink(text_data_file.c_str()) != 0) { // 删除表实现text字段的数据文件（后续实现了text case时需要考虑，最开始可以不考虑这个逻辑）
-    //     LOG_ERROR("Failed to remove text data file=%s, errno=%d", text_data_file.c_str(), errno);
-    //     return RC::GENERIC_ERROR;
-    // }
-
+    
     const int index_num = table_meta_.index_num();
     for (int i = 0; i < index_num; i++) {  // 清理所有的索引相关文件数据与索引元数据
         ((BplusTreeIndex*)indexes_[i])->close();
         const IndexMeta* index_meta = table_meta_.index(i);
-        // std::string index_file = index_data_file(dir, name(), index_meta->name());
-        // if(unlink(index_file.c_str()) != 0) {
-        //     LOG_ERROR("Failed to remove index file=%s, errno=%d", index_file.c_str(), errno);
-        //     return RC::GENERIC_ERROR;
-        // }
+        std::string index_file = table_index_file(dir, name(), index_meta->name());
+        if(unlink(index_file.c_str()) != 0) {
+            LOG_ERROR("Failed to remove index file=%s, errno=%d", index_file.c_str(), errno);
+            return RC::GENERIC_ERROR;
+        }
     }
     return RC::SUCCESS;
 }
@@ -378,7 +400,7 @@ RC Table::get_record_scanner(RecordFileScanner &scanner, Trx *trx, bool readonly
   return rc;
 }
 
-RC Table::create_index(Trx *trx, const FieldMeta *field_meta, const char *index_name)
+RC Table::create_index(Trx *trx, const FieldMeta *field_meta, const char *index_name,bool isUnique)
 {
   if (common::is_blank(index_name) || nullptr == field_meta) {
     LOG_INFO("Invalid input arguments, table name is %s, index_name is blank or attribute_name is blank", name());
@@ -386,13 +408,13 @@ RC Table::create_index(Trx *trx, const FieldMeta *field_meta, const char *index_
   }
 
   IndexMeta new_index_meta;
-  RC rc = new_index_meta.init(index_name, *field_meta);
+  RC rc = new_index_meta.init(index_name, *field_meta,isUnique);
   if (rc != RC::SUCCESS) {
     LOG_INFO("Failed to init IndexMeta in table:%s, index_name:%s, field_name:%s", 
              name(), index_name, field_meta->name());
     return rc;
   }
-
+  
   // 创建索引相关数据
   BplusTreeIndex *index = new BplusTreeIndex();
   std::string index_file = table_index_file(base_dir_.c_str(), name(), index_name);
@@ -404,6 +426,16 @@ RC Table::create_index(Trx *trx, const FieldMeta *field_meta, const char *index_
   }
 
   // 遍历当前的所有数据，插入这个索引
+  AttrType type=AttrType::UNDEFINED;
+  int attr_offset;
+  int attr_length;
+  CheckUnique ckU;
+  if(isUnique){
+    type=field_meta->type();
+    attr_offset=field_meta->offset();
+    attr_length=field_meta->len();
+    ckU.init(type,attr_length,attr_offset);
+  }
   RecordFileScanner scanner;
   rc = get_record_scanner(scanner, trx, true/*readonly*/);
   if (rc != RC::SUCCESS) {
@@ -420,6 +452,14 @@ RC Table::create_index(Trx *trx, const FieldMeta *field_meta, const char *index_
                name(), index_name, strrc(rc));
       return rc;
     }
+    if(isUnique&&ckU.pushValue(record.data())==false){
+      scanner.close_scan();
+      if(unlink(index_file.c_str()) != 0) {
+          LOG_ERROR("Failed to remove index file=%s, errno=%d", index_file.c_str(), errno);
+          return RC::GENERIC_ERROR;
+      }
+      return RC::GENERIC_ERROR;
+    }
     rc = index->insert_entry(record.data(), &record.rid());
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to insert record into index while creating index. table=%s, index=%s, rc=%s",
@@ -431,6 +471,10 @@ RC Table::create_index(Trx *trx, const FieldMeta *field_meta, const char *index_
   LOG_INFO("inserted all records into new index. table=%s, index=%s", name(), index_name);
   
   indexes_.push_back(index);
+  if(isUnique){
+    std::string name(field_meta->name());
+    unique_map_.insert(make_pair(name,ckU.values()));
+  }
 
   /// 接下来将这个索引放到表的元数据中
   TableMeta new_table_meta(table_meta_);
@@ -488,14 +532,6 @@ RC Table::delete_record(const Record &record)
 RC Table::update_record(Record &record,Field *field,Value &value)
 {
   RC rc = RC::SUCCESS;
-  // for (Index *index : indexes_) {
-  //   rc = index->delete_entry(record.data(), &record.rid());
-  //   ASSERT(RC::SUCCESS == rc, 
-  //          "failed to delete entry from index. table name=%s, index name=%s, rid=%s, rc=%s",
-  //          name(), index->index_meta().name(), record.rid().to_string().c_str(), strrc(rc));
-  // }
-
-  //  RC update_record(Record &record,Field *field,Value& value);
   rc = record_handler_->update_record(record,field,value);
   return rc;
 }
@@ -504,6 +540,40 @@ RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 {
   RC rc = RC::SUCCESS;
   for (Index *index : indexes_) {
+    if(index->index_meta().isUnique()){
+      FieldMeta  fm=index->field_meta();
+
+      if(unique_map_.find(fm.name())==unique_map_.end()){
+        
+        RecordFileScanner scanner;
+        Trx* trx=nullptr;
+        rc = get_record_scanner(scanner, trx, true/*readonly*/);
+        // if (rc != RC::SUCCESS) {
+        //   LOG_WARN("failed to create scanner while creating index. table=%s, index=%s, rc=%s", 
+        //           name(), index_name, strrc(rc));
+        //   return rc;
+        // }
+        Record curRecord;
+        unordered_set<string> values;
+        while (scanner.has_next()) {
+          rc = scanner.next(curRecord);
+          // if (rc != RC::SUCCESS) {
+          //   LOG_WARN("failed to scan records while creating index. table=%s, index=%s, rc=%s",
+          //           name(), index_name, strrc(rc));
+          //   return rc;
+          // }
+          string tmp;
+          values.insert(tmp.assign(curRecord.data()+fm.offset(),4));
+        }
+        unique_map_.insert(make_pair(fm.name(),values));
+
+      }
+      string tmp;
+      tmp.assign(record+fm.offset(),4);
+      if(unique_map_[fm.name()].find(tmp)!=unique_map_[fm.name()].end()){
+        return RC::GENERIC_ERROR;
+      }
+    }
     rc = index->insert_entry(record, &rid);
     if (rc != RC::SUCCESS) {
       break;

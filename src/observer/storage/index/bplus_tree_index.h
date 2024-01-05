@@ -43,6 +43,7 @@ public:
   RC sync() override;
 
 private:
+  
   bool inited_ = false;
   BplusTreeHandler index_handler_;
 };

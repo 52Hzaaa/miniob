@@ -112,6 +112,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         ORDER
         BY
         ASC
+        UNIQUE
 
 
 
@@ -134,7 +135,6 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   std::vector<Value> *              value_list;
   std::vector<Value> *              record;
   std::vector<std::vector<Value> >*      record_list;
-  std::vector<std::string >*        index_attr_list;
   std::vector<ConditionSqlNode> *   condition_list;
   std::vector<RelAttrSqlNode> *     rel_attr_list;
   std::vector<std::string> *        relation_list;
@@ -163,7 +163,6 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <order_list>         order_list
 %type <record>             record
 %type <record_list>        record_list
-%type <index_attr_list>    index_attr_list
 %type <rel_attr>    aggregation_attr
 %type <rel_attr_list>    aggregation_list
 %type <rel_attr>            rel_attr
@@ -293,45 +292,30 @@ desc_table_stmt:
     ;
 
 create_index_stmt:    /*create index 语句的语法解析树*/
-    CREATE INDEX ID ON ID LBRACE ID index_attr_list RBRACE
+    CREATE INDEX ID ON ID LBRACE ID RBRACE
     {
       $$ = new ParsedSqlNode(SCF_CREATE_INDEX);
       CreateIndexSqlNode &create_index = $$->create_index;
       create_index.index_name = $3;
       create_index.relation_name = $5;
-      if($8!=nullptr){
-        $8->push_back($7);
-        std::reverse($8->begin(),$8->end());
-        create_index.attribute_name.swap(*$8);
-        delete $8;
-      }
-      else{
-        create_index.attribute_name.push_back($7);
-      }
+      create_index.attribute_name=$7;
       free($3);
       free($5);
       free($7);
     }
+    | CREATE UNIQUE INDEX ID ON ID LBRACE ID RBRACE
+    {
+      $$ = new ParsedSqlNode(SCF_CREATE_INDEX);
+      CreateIndexSqlNode &create_index = $$->create_index;
+      create_index.index_name = $4;
+      create_index.relation_name = $6;
+      create_index.attribute_name=$8;
+      create_index.isUnique=true;
+      free($4);
+      free($6);
+      free($8);
+    }
     ;
-
-index_attr_list:
-  /*empty*/
-  {
-    $$=nullptr;
-  }
-  | COMMA ID index_attr_list
-  {
-    if($3!=nullptr){
-      $$=$3;
-      $$->push_back($2);
-    }
-    else{
-      $$=new std::vector<std::string>;
-      $$->push_back($2);
-    }
-    free($2);
-  }
-  ;
 
 drop_index_stmt:      /*drop index 语句的语法解析树*/
     DROP INDEX ID ON ID
@@ -574,6 +558,7 @@ select_stmt:        /*  select 语句的语法解析树*/
     |SELECT select_attr FROM ID inner_join inner_join_list{
       $$ = new ParsedSqlNode(SCF_SELECT);
       if ($2 != nullptr) {
+        reverse($2->begin(),$2->end());
         $$->selection.attributes.swap(*$2); //将S2赋值给select属性列表
         delete $2;
       }

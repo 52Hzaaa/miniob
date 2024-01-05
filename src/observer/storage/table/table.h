@@ -16,7 +16,9 @@ See the Mulan PSL v2 for more details. */
 
 #include <functional>
 #include "storage/table/table_meta.h"
-//#include "storage/field/field.h"
+
+#include <unordered_set>
+using namespace std;
 
 struct RID;
 class Record;
@@ -89,7 +91,7 @@ public:
   RC recover_insert_record(Record &record);
 
   // TODO refactor
-  RC create_index(Trx *trx, const FieldMeta *field_meta, const char *index_name);
+  RC create_index(Trx *trx, const FieldMeta *field_meta, const char *index_name,bool isUnique);
 
   RC get_record_scanner(RecordFileScanner &scanner, Trx *trx, bool readonly);
 
@@ -123,4 +125,5 @@ private:
   DiskBufferPool *data_buffer_pool_ = nullptr;   /// 数据文件关联的buffer pool
   RecordFileHandler *record_handler_ = nullptr;  /// 记录操作
   std::vector<Index *> indexes_;
+  unordered_map<string,unordered_set<string>> unique_map_;
 };
